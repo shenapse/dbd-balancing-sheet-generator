@@ -7,7 +7,8 @@ import { SheetError } from '../src/errors.js';
 import { findKiller } from '../src/match/lookup.js';
 import { Reporter } from '../src/report.js';
 import { groupAddonsByRarity } from '../src/render/addon-sheet.js';
-import { matchSelector, parseAddonAllowList, rarityToIndex, resolveAddonAllowList } from '../src/rules/addon-allowlist.js';
+import { matchSelector, parseAddonAllowList, resolveAddonAllowList } from '../src/rules/addon-allowlist.js';
+import { rarityToIndex } from '../src/rules/rarity.js';
 import { loadYamlFile } from '../src/rules/yaml.js';
 import { cat, root } from './helpers.js';
 

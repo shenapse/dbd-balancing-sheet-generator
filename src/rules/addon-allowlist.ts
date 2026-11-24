@@ -1,32 +1,10 @@
 import { z } from 'zod';
-import { RARITY, type Catalog, type PowerAddon } from '../assets/catalog.js';
+import type { Catalog, PowerAddon } from '../assets/catalog.js';
 import { SheetError } from '../errors.js';
 import { findPowerAddon } from '../match/lookup.js';
-import { normalize } from '../match/normalize.js';
+import { applyAllowDeny } from './allow-deny.js';
+import { POWER_ADDON_RARITY_COUNT, selectByRarity } from './rarity.js';
 import { formatZodError } from './yaml.js';
-
-/**
- * Resolve a rarity selector value (name such as "Very Rare" or numeric index) to an index.
- * @param value   YAML value of `{rarity: ...}` / `{tier: ...}`
- * @param source  file path used in error messages
- * @param count   number of valid rarities (5 for power add-ons, 6 for items / item add-ons)
- * @throws SheetError when the value is out of range or unknown
- */
-export function rarityToIndex(value: unknown, source: string, count: number = 5): number {
-  const names = RARITY.slice(0, count);
-  if (typeof value === 'number') {
-    if (value >= 0 && value < count) return value;
-    throw new SheetError(`Rarity index ${value} out of range (0-${count - 1}) in "${source}".`);
-  }
-  const norm = normalize(String(value));
-  const idx = names.findIndex((n) => normalize(n) === norm);
-  if (idx === -1) {
-    throw new SheetError(
-      `Unknown rarity "${String(value)}" in "${source}". Expected one of: ${names.join(', ')} (or a 0-${count - 1} index).`,
-    );
-  }
-  return idx;
-}
 
 const selectorList = z.array(z.unknown()).nullish();
 
@@ -105,14 +83,8 @@ export function matchSelector(
   }
   if (typeof selector === 'object' && selector !== null) {
     const s = selector as Record<string, unknown>;
-    if (s.rarity !== undefined) {
-      const idx = rarityToIndex(s.rarity, source);
-      return universe.filter((a) => a.rarity === idx);
-    }
-    if (s.tier !== undefined) {
-      const idx = rarityToIndex(s.tier, source);
-      return universe.filter((a) => a.rarity === idx);
-    }
+    const rarity = s.rarity !== undefined ? s.rarity : s.tier;
+    if (rarity !== undefined) return selectByRarity(universe, rarity, source, POWER_ADDON_RARITY_COUNT);
     throw new SheetError(
       `Unknown group selector ${JSON.stringify(selector)} in file "${source}". ` +
         `Only { rarity: "<name>" } and { tier: <0-4> } are supported.`,
@@ -144,18 +116,8 @@ export function resolveAddonAllowList(
   if (!universe) throw new SheetError(`No add-ons found for killer "${killerSlug}" in dbd-assets.`);
   const find = (name: string) => findPowerAddon(cat, killerSlug, name);
 
-  const def = (cfg?.default as unknown) || 'deny';
-  if (def !== 'allow' && def !== 'deny') {
-    throw new SheetError(`"default" must be "allow" or "deny" in file "${source}".`);
-  }
-  const allowed = new Map<string, PowerAddon>();
-  if (def === 'allow') for (const a of universe) allowed.set(a.slug, a);
-
-  for (const sel of cfg?.deny ?? []) {
-    for (const a of matchSelector(sel, universe, find, source)) allowed.delete(a.slug);
-  }
-  for (const sel of cfg?.allow ?? []) {
-    for (const a of matchSelector(sel, universe, find, source)) allowed.set(a.slug, a);
-  }
-  return [...allowed.values()];
+  return applyAllowDeny(universe, cfg, (sel) => matchSelector(sel, universe, find, source), {
+    fallbackDefault: 'deny',
+    invalidDefaultMessage: `"default" must be "allow" or "deny" in file "${source}".`,
+  });
 }

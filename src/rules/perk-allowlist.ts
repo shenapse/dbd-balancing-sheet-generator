@@ -12,14 +12,8 @@ import {
   type LimitBuckets,
 } from './perk-limits.js';
 import { resolveSide, type WarnFn } from './perk-selectors.js';
-import { readYamlFile, resolveUniverseDecl } from './universe.js';
-
-/** One line per zod issue (`file: path: message`); local copy so this module does not import rules/yaml.ts. */
-function formatZodError(filePath: string, err: z.ZodError): string {
-  return err.issues
-    .map((i) => `${filePath}: ${i.path.map(String).join('.') || '(root)'}: ${i.message}`)
-    .join('\n');
-}
+import { resolveUniverseDecl } from './universe.js';
+import { formatZodError, loadYamlFile } from './yaml.js';
 
 export const sideConfigSchema = z
   .looseObject({
@@ -120,5 +114,5 @@ export function resolvePerkAllowlist(
 
 /** Read `filePath` (YAML) and resolve it. @throws SheetError */
 export function loadPerkAllowlist(cat: Catalog, filePath: string, opts: PerkAllowlistOptions): PerkAllowlist {
-  return resolvePerkAllowlist(cat, readYamlFile(filePath), filePath, opts);
+  return resolvePerkAllowlist(cat, loadYamlFile(filePath), filePath, opts);
 }

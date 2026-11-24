@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { SheetError } from '../src/errors.js';
-import { findPerk } from '../src/match/lookup.js';
+import { findPerk, perkIndex, perkNameIndex } from '../src/match/lookup.js';
 import { renderIconSheet, renderSheet } from '../src/render/perk-sheet.js';
 import { resolvePerkAllowlist, loadPerkAllowlist } from '../src/rules/perk-allowlist.js';
 import {
@@ -17,7 +17,7 @@ import {
   resolvePickLimits,
   resolveRepetitionLimits,
 } from '../src/rules/perk-limits.js';
-import { matchSelector, perkNameIndex, resolveSide, sideIndex } from '../src/rules/perk-selectors.js';
+import { matchSelector, resolveSide } from '../src/rules/perk-selectors.js';
 import { findUniversesDir, loadUniverseFile, resolveUniverseDecl } from '../src/rules/universe.js';
 import { cat, root } from './helpers.js';
 
@@ -41,7 +41,7 @@ const err = (fn: () => unknown): string => {
 };
 
 describe('selectors', () => {
-  const idx = sideIndex(cat, 'survivor');
+  const idx = perkIndex(cat, 'survivor');
   it('matches names, former names and abbreviations', () => {
     expect(matchSelector('Borrowed Time', idx, F)[0]!.name).toBe('Borrowed Time');
     expect(matchSelector('borrowed-time', idx, F)[0]!.slug).toBe(survivor('Borrowed Time').slug);

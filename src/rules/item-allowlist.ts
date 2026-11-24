@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import type { Catalog, Item, ItemAddon, ItemVariant } from '../assets/catalog.js';
 import { SheetError } from '../errors.js';
-import { findItem } from '../match/lookup.js';
-import { normalize } from '../match/normalize.js';
-import { rarityToIndex } from './addon-allowlist.js';
+import { findItem, findItemAddon, findItemVariantInItem } from '../match/lookup.js';
+import { applyAllowDeny } from './allow-deny.js';
+import { ITEM_RARITY_COUNT, selectByRarity } from './rarity.js';
 import { formatZodError } from './yaml.js';
 
 const selectorList = z.array(z.unknown()).nullish();
@@ -97,13 +97,6 @@ function resolveSelection<T extends { slug: string; name: string; rarity: number
   label: string,
   source: string,
 ): T[] {
-  const def = (cfg?.default as unknown) || fallbackDefault;
-  if (def !== 'allow' && def !== 'deny') {
-    throw new SheetError(`"default" must be "allow" or "deny" (${label}) in file "${source}".`);
-  }
-  const allowed = new Map<string, T>();
-  if (def === 'allow') for (const e of universe) allowed.set(e.slug, e);
-
   const resolveSel = (sel: unknown): T[] => {
     if (typeof sel === 'string') {
       const e = find(sel);
@@ -111,8 +104,7 @@ function resolveSelection<T extends { slug: string; name: string; rarity: number
       return [e];
     }
     if (typeof sel === 'object' && sel !== null && (sel as Record<string, unknown>).rarity !== undefined) {
-      const idx = rarityToIndex((sel as Record<string, unknown>).rarity, source, 6);
-      return universe.filter((a) => a.rarity === idx);
+      return selectByRarity(universe, (sel as Record<string, unknown>).rarity, source, ITEM_RARITY_COUNT);
     }
     throw new SheetError(
       `Invalid ${label} selector ${JSON.stringify(sel)} in file "${source}". ` +
@@ -120,9 +112,10 @@ function resolveSelection<T extends { slug: string; name: string; rarity: number
     );
   };
 
-  for (const sel of cfg?.deny ?? []) for (const e of resolveSel(sel)) allowed.delete(e.slug);
-  for (const sel of cfg?.allow ?? []) for (const e of resolveSel(sel)) allowed.set(e.slug, e);
-  return [...allowed.values()].sort((a, b) => a.name.localeCompare(b.name));
+  return applyAllowDeny(universe, cfg, resolveSel, {
+    fallbackDefault,
+    invalidDefaultMessage: `"default" must be "allow" or "deny" (${label}) in file "${source}".`,
+  }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**
@@ -155,17 +148,13 @@ export function resolveItemAllowList(
   return itemsInSheetOrder(cat).map((item) => {
     const typeCfg = cfgBySlug.get(item.slug);
     const typeDefault = ((typeCfg?.default as unknown) || topDefault) as 'allow' | 'deny';
-    const variantIdx = new Map<string, ItemVariant>();
-    for (const v of item.variants) if (!variantIdx.has(normalize(v.name))) variantIdx.set(normalize(v.name), v);
     const addonUniverse = cat.itemAddonsByItem.get(item.slug) ?? [];
-    const addonIdx = new Map<string, ItemAddon>();
-    for (const a of addonUniverse) if (!addonIdx.has(normalize(a.name))) addonIdx.set(normalize(a.name), a);
     return {
       item,
       variants: resolveSelection(
         typeCfg,
         item.variants,
-        (n) => variantIdx.get(normalize(n)),
+        (n) => findItemVariantInItem(cat, item.slug, n),
         topDefault,
         `${item.name} variant`,
         source,
@@ -173,7 +162,7 @@ export function resolveItemAllowList(
       addons: resolveSelection(
         typeCfg?.addons,
         addonUniverse,
-        (n) => addonIdx.get(normalize(n)),
+        (n) => findItemAddon(cat, item.slug, n),
         typeDefault,
         `${item.name} add-on`,
         source,

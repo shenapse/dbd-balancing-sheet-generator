@@ -2,12 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Catalog, Side } from '../assets/catalog.js';
 import { SheetError } from '../errors.js';
-import { load as yamlLoad } from 'js-yaml';
+import { perkIndex } from '../match/lookup.js';
+import type { UniverseList } from './perk-selectors.js';
 import { loadYamlFile } from './yaml.js';
-import { sideIndex, type UniverseList } from './perk-selectors.js';
-
-/** @deprecated alias of {@link loadYamlFile}; kept for existing imports. */
-export const readYamlFile = loadYamlFile;
 
 /** Allowed top-level keys of a universe file. */
 export const UNIVERSE_FILE_KEYS = ['name', 'description', 'killer', 'survivor'] as const;
@@ -48,18 +45,7 @@ export function loadUniverseFile(cat: Catalog, universeFile: string): UniverseFi
   const hit = cache.get(universeFile);
   if (hit) return hit;
 
-  let raw: string;
-  try {
-    raw = fs.readFileSync(universeFile, 'utf8');
-  } catch (e) {
-    throw new SheetError(`Cannot read universe file "${universeFile}": ${(e as Error).message}`);
-  }
-  let doc: unknown;
-  try {
-    doc = yamlLoad(raw);
-  } catch (e) {
-    throw new SheetError(`YAML parse error in universe file "${universeFile}": ${(e as Error).message}`);
-  }
+  const doc = loadYamlFile(universeFile, 'universe file');
   if (!doc || typeof doc !== 'object' || Array.isArray(doc)) {
     throw new SheetError(`Universe file "${universeFile}" does not contain a YAML object.`);
   }
@@ -81,7 +67,7 @@ export function loadUniverseFile(cat: Catalog, universeFile: string): UniverseFi
         `"${side}" in universe file "${universeFile}" must be "all" or a non-empty list of perk names.`,
       );
     }
-    const index = sideIndex(cat, side);
+    const index = perkIndex(cat, side);
     const seen = new Map<string, string>(); // slug -> name as first written
     const names: string[] = [];
     for (const entry of value as unknown[]) {
