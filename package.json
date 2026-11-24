@@ -14,7 +14,8 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "dev": "tsx src/cli.ts"
+    "dev": "tsx src/cli.ts",
+    "compare-legacy": "tsx scripts/compare-legacy.ts"
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.2.0",
