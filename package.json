@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:update": "UPDATE_GOLDEN=1 vitest run -u",
+    "test:image": "vitest run test/regression.test.ts",
     "dev": "tsx src/cli.ts"
   },
   "dependencies": {
