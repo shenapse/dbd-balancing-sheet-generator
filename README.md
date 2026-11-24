@@ -150,7 +150,8 @@ npm test
 ```
 
 `npm test` uses the dbd-assets commit in `dbd-assets.ref`, fetched from GitHub on first run,
-unless you set `DBD_ASSETS_ROOT` yourself.
+unless you set `DBD_ASSETS_ROOT` yourself. The golden regression suite (`test/regression.test.ts`)
+requires that pinned commit.
 
 `DBD_ASSETS_ROOT` accepts a local checkout or a Git repository URL (HTTPS, SSH,
 or `file://`). Remote repositories are fetched on first use and cached under
@@ -171,6 +172,27 @@ docker build --build-arg DBD_ASSETS_REF=$(cat dbd-assets.ref) -t bsg:dev .
 docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" bsg:dev \
   perks test/fixtures/perks/the-trapper.yaml --out /work/output
 ```
+
+## Regression tests
+
+`test/regression.test.ts` runs every command on the sample inputs (`test/fixtures/`,
+`examples/input/`) with a frozen clock. It compares the output with the tool's own accepted
+output:
+
+- **PNGs**: pixel by pixel against `test/golden/<case>/`.
+- **JSON summaries**: outputs, warnings, violations and errors, against
+  `test/__snapshots__/regression.test.ts.snap`.
+
+On a mismatch, the failing case's PNGs and a diff image (mismatching pixels in red) are kept in
+`output-regression/<case>/`. CI uploads that folder as an artifact. If the change is intended,
+re-accept it and commit the updated goldens:
+
+```bash
+npm run test:update
+```
+
+Bumping `dbd-assets.ref` usually changes the goldens too: run `npm run test:update` after the bump
+and review the diffs.
 
 ## Documentation
 
