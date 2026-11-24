@@ -47,13 +47,11 @@ Options:
 ```
 
 In the image `dbd-sheet` is the entrypoint, so `docker run ... <image> perks x.yaml` runs
-`dbd-sheet perks x.yaml`. Output filenames are unchanged from the legacy tools (for example
+`dbd-sheet perks x.yaml`. Output filenames are derived from the killer name (for example
 `The-Trapper-killer-perks.png`); see the per-command docs.
 
-Compared with the legacy generators: `--preset`, `--name`, `--asset-root` and
-`DBD_BALANCING_TOOL_ROOT` are gone (no preset compilation), and the `{ exhaustion: true }` /
-`{ tag: ... }` perk selectors are not supported (dbd-assets has no such data); they fail with an
-error.
+The `{ exhaustion: true }` / `{ tag: ... }` perk selectors are not supported (dbd-assets has no
+such data); they fail with an error.
 
 ### Exit codes
 
