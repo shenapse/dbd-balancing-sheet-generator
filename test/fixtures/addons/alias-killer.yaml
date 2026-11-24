@@ -1,0 +1,6 @@
+killer: Bubba
+balancing: alias test
+addons:
+  default: deny
+  allow:
+    - { tier: 0 }
