@@ -133,8 +133,8 @@ docker image inspect ghcr.io/shenapse/dbd-balancing-sheet-generator:latest \
 ```
 
 To bump the assets: edit the SHA in `dbd-assets.ref`, open a PR (CI runs the tests against that
-dbd-assets commit and smoke-tests the built image), and merge. Publishing to GHCR happens on
-merge to `main`.
+dbd-assets commit and the regression suite against the built image), and merge. Publishing to
+GHCR happens on merge to `main`.
 
 ## Development
 
@@ -193,6 +193,22 @@ npm run test:update
 
 Bumping `dbd-assets.ref` usually changes the goldens too: run `npm run test:update` after the bump
 and review the diffs.
+
+The same suite can check a Docker image instead of the source: with `BSG_TEST_IMAGE` set, every
+case runs through `docker run <image>` (repo mounted at `/work`, date fixed with
+`SOURCE_DATE_EPOCH`) and must match the same goldens and snapshots. The image must be built
+against the commit in `dbd-assets.ref`. Goldens are only updated from the source run.
+
+```bash
+docker build --build-arg DBD_ASSETS_REF=$(cat dbd-assets.ref) -t bsg:dev .
+BSG_TEST_IMAGE=bsg:dev npm run test:image
+```
+
+CI does this for every PR's image. On release, the image is built, regression-tested, and only
+then pushed, so the published image is the one that passed.
+
+`SOURCE_DATE_EPOCH` (Unix seconds) also works for normal runs, when you need the date printed on
+the sheets to be reproducible.
 
 ## Documentation
 

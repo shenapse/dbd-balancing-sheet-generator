@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { now } from '../clock.js';
 import { SheetError } from '../errors.js';
 import { DEFAULT_COLUMNS, perkSheetPath, renderIconSheet, renderSheet } from '../render/perk-sheet.js';
 import { loadPerkAllowlist } from '../rules/perk-allowlist.js';
@@ -13,7 +14,7 @@ export const run: RunCommand = async (opts, ctx) => {
   if (opts.files.length === 0) throw new SheetError('perks: no input files given.\n\nUsage: dbd-sheet perks <allowlist.yaml...> [options]');
   const { reporter, catalog, assetsRoot } = ctx;
   const columns = opts.columns ?? DEFAULT_COLUMNS;
-  const dateLabel = new Date().toISOString().slice(0, 10);
+  const dateLabel = now().toISOString().slice(0, 10);
   const outDir = path.resolve(opts.out);
 
   for (const input of opts.files) {

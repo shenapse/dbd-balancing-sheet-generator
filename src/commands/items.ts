@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { now } from '../clock.js';
 import { SheetError } from '../errors.js';
 import { findKiller } from '../match/lookup.js';
 import { buildItemGroups, renderIconSheet, renderSheet } from '../render/item-sheet.js';
@@ -12,7 +13,7 @@ import type { RunCommand } from './types.js';
 export const run: RunCommand = async (opts, ctx) => {
   if (opts.files.length === 0) throw new SheetError('items: no input files given.');
   const { catalog, assetsRoot, reporter } = ctx;
-  const dateLabel = new Date().toISOString().slice(0, 10);
+  const dateLabel = now().toISOString().slice(0, 10);
   const outDir = path.resolve(opts.out);
 
   for (const input of opts.files) {

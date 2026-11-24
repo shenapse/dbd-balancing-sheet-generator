@@ -1,4 +1,4 @@
-# Reusable CI jobs (tests + Docker smoke test). Called by ci.yml (PRs, main) and publish.yml
+# Reusable CI jobs (tests + golden regression of the Docker image). Called by ci.yml (PRs, main) and publish.yml
 # (main, v* tags) so an image is only published after exactly these checks pass.
 name: Checks
 
@@ -51,6 +51,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Node runs the regression suite on the host; the sheets themselves are rendered in the image.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
       - uses: docker/setup-buildx-action@v3
 
       - name: Read pinned dbd-assets ref
@@ -69,34 +77,18 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Smoke test
-        run: |
-          set -euo pipefail
-          run() { docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" bsg:ci "$@"; }
-          out=smoke-out
-          mkdir -p "$out"
+      - run: docker run --rm bsg:ci version
 
-          run version
+      # Same cases, goldens and snapshots as `npm test`, but every sheet comes from the image's CLI.
+      - name: Regression test the image
+        run: npm run test:image
+        env:
+          BSG_TEST_IMAGE: bsg:ci
 
-          check() { # <name> <json-file>
-            jq -e '.files | length > 0' "$2" > /dev/null
-            jq -r '.files[].outputs[]' "$2" | while read -r png; do
-              png="${png#/work/}"  # container path -> host path
-              test -s "$png" || { echo "missing PNG: $png" >&2; exit 1; }
-            done
-            echo "$1 ok"
-          }
-
-          run perks test/fixtures/perks/the-trapper.yaml --out /work/$out --json > "$out/perks.json"
-          check perks "$out/perks.json"
-
-          run addons test/fixtures/addons/the-trapper.yaml --out /work/$out --json > "$out/addons.json"
-          check addons "$out/addons.json"
-
-          run items test/fixtures/items/the-trapper.yaml --out /work/$out --json > "$out/items.json"
-          check items "$out/items.json"
-
-          run builds test/fixtures/builds/the-trapper-killer.yaml \
-            test/fixtures/builds/the-trapper-survivors.yaml \
-            --rules test/fixtures/rules/the-trapper.yaml --out /work/$out --json > "$out/builds.json"
-          check builds "$out/builds.json"
+      - name: Upload regression diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-diffs-image
+          path: output-regression/
+          if-no-files-found: ignore

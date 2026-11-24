@@ -10,7 +10,13 @@
  * valid for the dbd-assets commit in dbd-assets.ref. After an intended change, re-accept with
  * `npm run test:update` and review the PNG diffs before committing. On a mismatch the actual
  * output and a diff image (mismatching pixels in red) are left in output-regression/<case>/.
+ *
+ * With BSG_TEST_IMAGE=<docker image> the cases run through the image's CLI instead (`docker run`,
+ * repo mounted at /work, clock frozen via SOURCE_DATE_EPOCH) and are checked against the same
+ * goldens and snapshots, so a published image is held to exactly what the source tests accept.
+ * Goldens are only ever accepted from the source run: UPDATE_GOLDEN is refused in image mode.
  */
+import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createCanvas, loadImage, type Image } from '@napi-rs/canvas';
@@ -23,16 +29,18 @@ import { run as perks } from '../src/commands/perks.js';
 import type { RunCommand } from '../src/commands/types.js';
 import { SheetError } from '../src/errors.js';
 import { Reporter } from '../src/report.js';
-import { cat, root } from './helpers.js';
 
 const REPO = path.resolve(import.meta.dirname, '..');
 const GOLDEN_DIR = path.join(REPO, 'test/golden');
 const ACTUAL_DIR = path.join(REPO, 'output-regression');
 const UPDATE = process.env.UPDATE_GOLDEN === '1';
+const IMAGE = process.env.BSG_TEST_IMAGE?.trim() || null;
 const PINNED_REF = fs.readFileSync(path.join(REPO, 'dbd-assets.ref'), 'utf8').trim();
 const FROZEN_NOW = new Date('2026-01-01T12:00:00Z');
 /** A pixel differs when any RGBA channel differs by more than this (absorbs rasteriser noise). */
 const CHANNEL_TOLERANCE = 8;
+/** Where the repo is mounted inside the image. */
+const CONTAINER_REPO = '/work';
 
 const COMMANDS: Record<string, RunCommand> = { perks, addons, items, builds };
 
@@ -73,8 +81,18 @@ const CASES: Case[] = [
   { name: 'builds-lich-killer', command: 'builds', files: [`${EX}/lich-killer-builds.yaml`], rules: `${EX}/lich-allowlist.yaml` },
 ];
 
-/** Run one case as the CLI would and return its JSON summary with machine-specific paths removed. */
-async function runCase(c: Case, out: string): Promise<unknown> {
+/** Replace the runner's view of the output dir and the repo so summaries compare across machines. */
+function normalize(summary: unknown, outDir: string, repo: string, sep: string): unknown {
+  const esc = (s: string) => JSON.stringify(s).slice(1, -1);
+  return JSON.parse(
+    JSON.stringify(summary).replaceAll(esc(outDir + sep), '').replaceAll(esc(repo), '<repo>'),
+  );
+}
+
+/** Run one case in-process, as the CLI would, and return its normalized JSON summary. */
+async function runCaseInProcess(c: Case, out: string): Promise<unknown> {
+  // Imported lazily: helpers load the host's dbd-assets, which image mode does not need.
+  const { cat, root } = await import('./helpers.js');
   const reporter = new Reporter(
     { tool: 'balancing-sheet-generator', version: 'test', assetsRef: null, command: c.command },
     true,
@@ -95,11 +113,39 @@ async function runCase(c: Case, out: string): Promise<unknown> {
     if (!(e instanceof SheetError)) throw e;
     reporter.error = e.message;
   }
-  const json = JSON.stringify(reporter.toJSON())
-    .replaceAll(JSON.stringify(out + path.sep).slice(1, -1), '')
-    .replaceAll(JSON.stringify(REPO).slice(1, -1), '<repo>');
-  return JSON.parse(json);
+  return normalize(reporter.toJSON(), out, REPO, path.sep);
 }
+
+/** `docker run` the image with the repo mounted at /work, as the invoking user so outputs stay removable. */
+function docker(image: string, args: string[]): SpawnSyncReturns<string> {
+  const user = process.getuid && process.getgid ? ['--user', `${process.getuid()}:${process.getgid()}`] : [];
+  const epoch = String(Math.floor(FROZEN_NOW.getTime() / 1000));
+  return spawnSync(
+    'docker',
+    ['run', '--rm', ...user, '-v', `${REPO}:${CONTAINER_REPO}`, '-e', `SOURCE_DATE_EPOCH=${epoch}`, image, ...args],
+    { cwd: REPO, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
+  );
+}
+
+/** Run one case through the image's CLI and return its normalized JSON summary. */
+function runCaseInImage(image: string, c: Case, out: string): unknown {
+  const outRel = path.relative(REPO, out).split(path.sep).join('/');
+  const args = [c.command, ...c.files, '--out', `${CONTAINER_REPO}/${outRel}`, '--json'];
+  if (c.rules) args.push('--rules', c.rules);
+  if (c.iconsOnly) args.push('--icons-only');
+  const r = docker(image, args);
+  // 0 = success, 2 = SheetError (expected-error cases); anything else is a crash.
+  if (r.error || (r.status !== 0 && r.status !== 2)) {
+    throw new Error(`docker run ${args.join(' ')} failed (status ${r.status}): ${r.error?.message ?? r.stderr}`);
+  }
+  const summary = JSON.parse(r.stdout) as { version: string; assetsRef: string | null };
+  expect(summary.assetsRef, 'image was built against a different dbd-assets commit than dbd-assets.ref').toBe(PINNED_REF);
+  // The source run has no real version or ref; align them so both runs share one snapshot.
+  return normalize({ ...summary, version: 'test', assetsRef: null }, `${CONTAINER_REPO}/${outRel}`, CONTAINER_REPO, '/');
+}
+
+const runCase = (c: Case, out: string): Promise<unknown> =>
+  IMAGE ? Promise.resolve(runCaseInImage(IMAGE, c, out)) : runCaseInProcess(c, out);
 
 const listPngs = (dir: string): string[] =>
   fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.png')).sort() : [];
@@ -142,7 +188,12 @@ async function diffPng(expectedPath: string, actualPath: string, diffPath: strin
 }
 
 describe('golden regression', () => {
-  beforeAll(() => {
+  beforeAll(async () => {
+    if (IMAGE) {
+      if (UPDATE) throw new Error('Goldens are accepted from the source run only; unset BSG_TEST_IMAGE to update them.');
+      return; // The image's own dbd-assets ref is checked per case from its JSON summary.
+    }
+    const { root } = await import('./helpers.js');
     const ref = readAssetsRef(root);
     if (ref !== PINNED_REF) {
       throw new Error(
