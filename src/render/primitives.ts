@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { Canvas, SKRSContext2D } from '@napi-rs/canvas';
-import { BG_COLOR, SCOPE_COLORS, font } from './theme.js';
+import { BG_COLOR, SCOPE_COLORS, fontPt } from './theme.js';
 
 /** Scope of a limit/ban rule. */
 export type Scope = keyof typeof SCOPE_COLORS;
@@ -59,7 +59,7 @@ export function drawScopeChip(
   roundRectPath(ctx, x, y, w, h, 6);
   ctx.fill();
   ctx.fillStyle = BG_COLOR;
-  ctx.font = font(16, 'bold'); // 12pt
+  ctx.font = fontPt(12, 'bold');
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(label, x + w / 2, y + h / 2 + 1);

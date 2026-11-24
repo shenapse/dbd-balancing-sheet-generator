@@ -1,6 +1,10 @@
 import type { Catalog, Perk, Side } from '../assets/catalog.js';
 import { SheetError } from '../errors.js';
-import { matchSelector, sideIndex, type WarnFn } from './perk-selectors.js';
+import { perkIndex } from '../match/lookup.js';
+import { duplicateRuleText, pickRuleText as sharedPickRuleText, SCOPE_ORDER, sortByScope } from './limit-text.js';
+import { matchSelector, type WarnFn } from './perk-selectors.js';
+
+export { SCOPE_ORDER };
 
 /** Scope of a perk limit. Killer-side limits use `build` (the killer's single build). */
 export type LimitScope = 'survivor' | 'duo' | 'team' | 'build';
@@ -11,13 +15,6 @@ export const SURVIVOR_COMBO_SCOPES = ['survivor', 'duo', 'team'] as const;
 export const PICK_SURVIVOR_SCOPES = ['survivor', 'duo', 'team'] as const;
 /** Scopes valid for repetition limits (survivor side only). */
 export const REPETITION_SCOPES = ['duo', 'team'] as const;
-/** Global scope ordering for rendered limit buckets. */
-export const SCOPE_ORDER: readonly LimitScope[] = ['survivor', 'duo', 'team', 'build'];
-
-function scopeRank(scope: LimitScope): number {
-  const i = SCOPE_ORDER.indexOf(scope);
-  return i === -1 ? SCOPE_ORDER.length : i;
-}
 
 /** A resolved combination ban: the perks may not all be brought together within the scope. */
 export interface ComboBan {
@@ -55,7 +52,7 @@ const jsonOf = (v: unknown): string => JSON.stringify(v) ?? String(v);
 
 /** Resolve a list of names inside combo/pick/repetition rules against all perks of the side. */
 function resolveNames(cat: Catalog, side: Side, names: unknown[], filePath: string): Perk[] {
-  const lookup = sideIndex(cat, side);
+  const lookup = perkIndex(cat, side);
   return names.map((sel) => matchSelector(sel, lookup, filePath)[0] as Perk);
 }
 
@@ -327,11 +324,7 @@ export function classifyLimits(limits: PerkLimit[], filePath: string, warn: Warn
     if (lim.max === len - 1) combo.push(lim);
     else pick.push(lim);
   }
-  const byScope = (a: PerkLimit, b: PerkLimit) => scopeRank(a.scope) - scopeRank(b.scope);
-  duplicate.sort(byScope);
-  pick.sort(byScope);
-  combo.sort(byScope);
-  return { duplicate, pick, combo };
+  return { duplicate: sortByScope(duplicate), pick: sortByScope(pick), combo: sortByScope(combo) };
 }
 
 /**
@@ -361,29 +354,8 @@ export function comboGroupRuleText(scope: LimitScope, combos: { perks: Perk[] }[
 }
 
 /** Rule sentence for a single pick limit, keyed off scope and max. */
-export function pickRuleText(rule: { scope: LimitScope; max: number }): string {
-  const atMost = rule.max === 1 ? 'at most one' : `at most ${rule.max}`;
-  switch (rule.scope) {
-    case 'survivor':
-      return `One survivor may bring ${atMost} of these perks.`;
-    case 'duo':
-      return `Each duo may bring ${atMost} of these perks between its two members.`;
-    case 'team':
-      return `The team may bring ${atMost} of these perks.`;
-    case 'build':
-      return `The killer may bring ${atMost} of these perks in one build.`;
-    default:
-      return `${atMost.charAt(0).toUpperCase()}${atMost.slice(1)} of these perks may be brought.`;
-  }
-}
+export const pickRuleText = (rule: { scope: LimitScope; max: number }): string => sharedPickRuleText(rule, 'perk');
 
 /** Rule sentence for one repetition limit (`perks` non-null = a listed subset). */
-export function repetitionRuleText(rule: { scope: LimitScope; max: number; perks: unknown[] | null }): string {
-  const listed = rule.perks ? ' listed' : '';
-  if (rule.scope === 'duo') {
-    if (rule.max === 1) return `Duo partners may not both bring the same${listed} perk.`;
-    return `At most ${rule.max} duo members may bring any single${listed} perk.`;
-  }
-  if (rule.max === 1) return `No two survivors may bring the same${listed} perk.`;
-  return `At most ${rule.max} survivors may bring any single${listed} perk.`;
-}
+export const repetitionRuleText = (rule: { scope: LimitScope; max: number; perks: unknown[] | null }): string =>
+  duplicateRuleText(rule, Boolean(rule.perks), 'perk');

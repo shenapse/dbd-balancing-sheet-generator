@@ -1,33 +1,13 @@
 import type { Catalog, Perk, Side } from '../assets/catalog.js';
 import { SheetError } from '../errors.js';
-import { NameIndex } from '../match/lookup.js';
+import { perkIndex, perkNameIndex, type NameIndex } from '../match/lookup.js';
+import { applyAllowDeny } from './allow-deny.js';
 
 /** Callback used instead of console.warn so callers decide how warnings surface. */
 export type WarnFn = (message: string) => void;
 
 /** Universe declaration after expansion: every perk of the side, or an explicit list of perk names. */
 export type UniverseList = 'all' | string[];
-
-/** Build a NameIndex over `perks` (canonical name > renamed_from / aliases / abbreviations). */
-export function perkNameIndex(perks: Perk[]): NameIndex<Perk> {
-  return new NameIndex(
-    perks.map((p) => ({
-      record: p,
-      names: [p.name],
-      aliases: [...(p.renamedFrom ? [p.renamedFrom.name] : []), ...p.aliases, ...p.abbreviations],
-    })),
-    (p) => p.name,
-  );
-}
-
-const sideIndexCache = new WeakMap<Catalog, Partial<Record<Side, NameIndex<Perk>>>>();
-
-/** Cached index over ALL perks of one side. */
-export function sideIndex(cat: Catalog, side: Side): NameIndex<Perk> {
-  let m = sideIndexCache.get(cat);
-  if (!m) sideIndexCache.set(cat, (m = {}));
-  return (m[side] ??= perkNameIndex(cat.perksBySide[side]));
-}
 
 /**
  * Throw the "perk exists but is outside the build's universe" authoring error.
@@ -125,7 +105,7 @@ export function resolveSide(
   filePath: string,
 ): Perk[] {
   const sideAll = cat.perksBySide[side];
-  const full = sideIndex(cat, side);
+  const full = perkIndex(cat, side);
   let universe: Perk[];
   let lookup: NameIndex<Perk>;
   let sideLookup: NameIndex<Perk> | null;
@@ -145,18 +125,14 @@ export function resolveSide(
     throw new SheetError(`Invalid universe declaration in file "${filePath}".`);
   }
 
-  const defaultVal = sideConfig?.default ?? 'allow';
-  if (defaultVal !== 'allow' && defaultVal !== 'deny') {
-    throw new SheetError(`"default" must be "allow" or "deny" in file "${filePath}".`);
-  }
-  const allowed = new Map<string, Perk>();
-  if (defaultVal === 'allow') for (const p of universe) allowed.set(p.slug, p);
-
-  for (const sel of sideConfig?.deny ?? []) {
-    for (const p of matchSelector(sel, lookup, filePath, sideLookup)) allowed.delete(p.slug);
-  }
-  for (const sel of sideConfig?.allow ?? []) {
-    for (const p of matchSelector(sel, lookup, filePath, sideLookup)) allowed.set(p.slug, p);
-  }
-  return [...allowed.values()].sort((a, b) => a.name.localeCompare(b.name));
+  const allowed = applyAllowDeny(
+    universe,
+    sideConfig,
+    (sel) => matchSelector(sel, lookup, filePath, sideLookup),
+    {
+      fallbackDefault: 'allow',
+      invalidDefaultMessage: `"default" must be "allow" or "deny" in file "${filePath}".`,
+    },
+  );
+  return allowed.sort((a, b) => a.name.localeCompare(b.name));
 }

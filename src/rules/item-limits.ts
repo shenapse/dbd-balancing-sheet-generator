@@ -2,6 +2,7 @@ import type { Catalog, ItemVariant } from '../assets/catalog.js';
 import { SheetError } from '../errors.js';
 import { findItem, findItemVariant } from '../match/lookup.js';
 import type { ItemTypeSelection } from './item-allowlist.js';
+import { duplicateRuleText, pickRuleText, sortByScope } from './limit-text.js';
 
 /** Item limits only support these scopes (each survivor brings a single item). */
 export type ItemScope = 'duo' | 'team';
@@ -24,12 +25,6 @@ export interface ClassifiedItemLimits {
   duplicate: ItemLimit[];
   pick: ItemLimit[];
 }
-
-const SCOPE_ORDER: string[] = ['duo', 'team'];
-const scopeRank = (s: string) => {
-  const i = SCOPE_ORDER.indexOf(s);
-  return i === -1 ? SCOPE_ORDER.length : i;
-};
 
 /** Warning sink; receives plain messages (no prefix). */
 export type WarnFn = (message: string) => void;
@@ -61,35 +56,15 @@ export function classifyItemLimits(limits: ItemLimit[], source: string, warn: Wa
     }
     pick.push(lim);
   }
-  const byScope = (a: ItemLimit, b: ItemLimit) => scopeRank(a.scope) - scopeRank(b.scope);
-  duplicate.sort(byScope);
-  pick.sort(byScope);
-  return { duplicate, pick };
+  return { duplicate: sortByScope(duplicate), pick: sortByScope(pick) };
 }
 
 /** Rule sentence for one pick limit, keyed off scope and max. */
-export function itemPickRuleText(rule: Pick<ItemLimit, 'scope' | 'max'>): string {
-  const atMost = rule.max === 1 ? 'at most one' : `at most ${rule.max}`;
-  switch (rule.scope) {
-    case 'duo':
-      return `Each duo may bring ${atMost} of these items between its two members.`;
-    case 'team':
-      return `The team may bring ${atMost} of these items.`;
-    default:
-      return `${atMost.charAt(0).toUpperCase()}${atMost.slice(1)} of these items may be brought.`;
-  }
-}
+export const itemPickRuleText = (rule: Pick<ItemLimit, 'scope' | 'max'>): string => pickRuleText(rule, 'item');
 
 /** Rule sentence for one duplicate limit; `items` non-null means a listed subset. */
-export function itemDuplicateRuleText(rule: Pick<ItemLimit, 'scope' | 'max' | 'items'>): string {
-  const listed = rule.items ? ' listed' : '';
-  if (rule.scope === 'duo') {
-    if (rule.max === 1) return `Duo partners may not both bring the same${listed} item.`;
-    return `At most ${rule.max} duo members may bring any single${listed} item.`;
-  }
-  if (rule.max === 1) return `No two survivors may bring the same${listed} item.`;
-  return `At most ${rule.max} survivors may bring any single${listed} item.`;
-}
+export const itemDuplicateRuleText = (rule: Pick<ItemLimit, 'scope' | 'max' | 'items'>): string =>
+  duplicateRuleText(rule, Boolean(rule.items), 'item');
 
 /**
  * Parse `itemDuplicateLimits` / `itemPickLimits` into classified limits. Selectors refer to

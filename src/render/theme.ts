@@ -52,6 +52,15 @@ export function font(sizePx: number, weight: 'normal' | 'bold' | number = 'norma
   return `${sizePx}px "${bold ? FONT_FAMILIES.bold : FONT_FAMILIES.normal}"`;
 }
 
+/** Legacy `Npt` font size in px (96 dpi): 12pt = 16px. */
+export const pt = (n: number): number => (n * 4) / 3;
+
+/** CSS font string for a legacy point size: `fontPt(12, 'bold')` => font(16, 'bold'). */
+export const fontPt = (sizePt: number, weight: 'normal' | 'bold' | number = 'normal'): string => font(pt(sizePt), weight);
+
+/** Outer margin shared by the perk / add-on / item sheets. */
+export const SHEET_MARGIN = 32;
+
 /** Package root (fonts/ lives there); same relative depth from src/render and dist/render. */
 const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const FONTS_DIR = path.join(PACKAGE_ROOT, 'fonts');
