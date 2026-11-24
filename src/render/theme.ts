@@ -2,7 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { GlobalFonts } from '@napi-rs/canvas';
 
-// Colours gathered from the legacy generators in balancing-tool/utilities/*-sheet-generator.
+// Sheet colours.
 /** Sheet background (all four generators). */
 export const BG_COLOR = '#100f16';
 /** Primary text (all four). */
@@ -15,7 +15,7 @@ export const DIVIDER_COLOR = '#2a2833';
 export const SUBTEXT_COLOR = '#999999';
 /** Rule sentences, names under icons (perk/item sheets). */
 export const RULE_TEXT_COLOR = '#cccccc';
-/** Other greys used by the legacy files; call sites decide their role. */
+/** Other greys; call sites decide their role. */
 export const GREY_AAA = '#aaaaaa';
 export const GREY_BBB = '#bbbbbb';
 export const GREY_DDD = '#dddddd';
@@ -24,7 +24,7 @@ export const GREY_888 = '#888888';
 export const PANEL_COLOR = '#25233380';
 /** Violation red: outlines, markers (build sheet). Same as the whole-team scope colour. */
 export const VIOLATION_COLOR = '#e5484d';
-/** Legacy debug-ish tints (build sheet / perk sheet). */
+/** OK / bad status tints (build sheet / perk sheet). */
 export const OK_TEXT_COLOR = '#80ff80';
 export const BAD_TEXT_COLOR = '#ff8080';
 
@@ -44,18 +44,18 @@ export const FONT_FAMILY = 'Noto Sans';
 export const FONT_FAMILIES = { normal: 'Noto Sans Regular', bold: 'Noto Sans Bold' } as const;
 
 /**
- * CSS font string. `font(28, 'bold')` => `bold 28px "Noto Sans"`, replacing legacy
- * `'bold 28px sans-serif'`. Legacy `12pt` sizes: use `font(16, ...)` (12pt = 16px).
+ * CSS font string. `font(28, 'bold')` => `bold 28px "Noto Sans"`. For point sizes use
+ * {@link fontPt} (12pt = 16px).
  */
 export function font(sizePx: number, weight: 'normal' | 'bold' | number = 'normal'): string {
   const bold = weight === 'bold' || (typeof weight === 'number' && weight >= 600);
   return `${sizePx}px "${bold ? FONT_FAMILIES.bold : FONT_FAMILIES.normal}"`;
 }
 
-/** Legacy `Npt` font size in px (96 dpi): 12pt = 16px. */
+/** `Npt` font size in px (96 dpi): 12pt = 16px. */
 export const pt = (n: number): number => (n * 4) / 3;
 
-/** CSS font string for a legacy point size: `fontPt(12, 'bold')` => font(16, 'bold'). */
+/** CSS font string for a point size: `fontPt(12, 'bold')` => font(16, 'bold'). */
 export const fontPt = (sizePt: number, weight: 'normal' | 'bold' | number = 'normal'): string => font(pt(sizePt), weight);
 
 /** Outer margin shared by the perk / add-on / item sheets. */

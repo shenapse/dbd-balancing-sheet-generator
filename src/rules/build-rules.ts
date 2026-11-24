@@ -130,7 +130,7 @@ export function loadRulesContext(
   };
 }
 
-/** Rule kinds, matching legacy. */
+/** Rule kinds (also the `rule` field of the JSON summary). */
 export type ViolationKind = 'perk-banned' | 'addon-banned' | 'item-banned' | 'item-addon-banned' | 'combo-ban' | 'pick-limit';
 
 /** Slot group, matching the build-sheet slot kinds that carry an outline. */
@@ -263,7 +263,7 @@ export function validateRow(
 }
 
 /**
- * Sort order within a row. Legacy values, kept as-is: addon-banned shares rank 3 with
+ * Sort order within a row. addon-banned shares rank 3 with
  * item-addon-banned (they never co-occur: killer vs survivor side).
  */
 export const VIOLATION_KIND_ORDER: Record<ViolationKind, number> = {
@@ -304,7 +304,7 @@ export function validateModel(cat: Catalog, model: BuildModel, ctx: RulesContext
 
   const violations: BuildViolation[] = [];
   model.rows.forEach((row, i) => validateRow(cat, row, i, model, ctx, violations));
-  // Array.prototype.sort is stable, matching legacy.
+  // Array.prototype.sort is stable, so equal ranks keep discovery order.
   violations.sort((a, b) => {
     if (a.rowIndex !== b.rowIndex) return a.rowIndex - b.rowIndex;
     const ao = VIOLATION_KIND_ORDER[a.kind];

@@ -24,7 +24,7 @@ export interface AllowDenyOptions {
  * @param resolveSelector  maps one selector to its matching records; throws on unknown selectors
  * @param opts             fallback default and the invalid-default error message
  * @returns the allowed records in insertion order (universe order first), de-duplicated by slug;
- *   callers sort as their legacy tool did
+ *   callers sort as their sheet needs
  * @throws SheetError for a `default` other than allow/deny, or whatever `resolveSelector` throws
  */
 export function applyAllowDeny<T extends { slug: string }>(

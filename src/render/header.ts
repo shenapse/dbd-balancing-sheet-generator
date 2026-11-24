@@ -12,7 +12,7 @@ const META_LINE_H = 22;
 /** One left-aligned text line of the header; `dy` is relative to the top margin. */
 export interface HeaderLine {
   text: string;
-  /** Legacy point size (see theme `pt`). */
+  /** Point size (see theme `pt`). */
   sizePt: number;
   weight?: 'normal' | 'bold';
   color: string;

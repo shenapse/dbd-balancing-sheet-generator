@@ -25,9 +25,8 @@ export const sideConfigSchema = z
 
 /**
  * Perk-related part of an allow-list YAML. Other top-level keys (addons, items, display, ...,
- * owned by other tools) are tolerated and ignored, exactly like legacy. Limit sections are kept
- * as `unknown` here and validated by the resolvers in perk-limits.ts (which give the legacy
- * path-qualified messages).
+ * owned by other commands) are tolerated and ignored. Limit sections are kept as `unknown`
+ * here and validated by the resolvers in perk-limits.ts (which give path-qualified messages).
  */
 export const perkAllowlistSchema = z.looseObject({
   killer: z.string({ error: 'Missing "killer" field (a killer name is required).' }).min(1, 'Missing "killer" field.'),

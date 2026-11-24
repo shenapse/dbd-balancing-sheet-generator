@@ -7,7 +7,7 @@ import { drawIconGrid } from './icon-grid.js';
 import { createImageLoader } from './image-loader.js';
 import { BG_COLOR, fontPt, GREY_888, GREY_AAA, registerFonts, SHEET_MARGIN, TEXT_COLOR } from './theme.js';
 
-// Layout constants (legacy addon-sheet-generator).
+// Layout constants.
 export const DEFAULT_COLUMNS = 8;
 const ICON = 118;
 const GAP = 16;

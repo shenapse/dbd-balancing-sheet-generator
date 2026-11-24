@@ -94,7 +94,7 @@ export interface SideConfig {
  * (allow wins), all inside the universe.
  *
  * @param universeDecl `'all'` or an explicit list of perk names (see resolveUniverseDecl)
- * @returns allowed perks sorted by name (localeCompare, as legacy)
+ * @returns allowed perks sorted by name (localeCompare)
  * @throws SheetError on unknown perks, perks outside the universe, bad selectors
  */
 export function resolveSide(

@@ -33,7 +33,7 @@ import {
 import { savePng, SCOPE_META } from './primitives.js';
 import { BG_COLOR, fontPt, GREY_888, GREY_AAA, registerFonts, TEXT_COLOR } from './theme.js';
 
-// Layout constants (legacy perk-sheet-generator.js).
+// Layout constants.
 export const DEFAULT_COLUMNS = 8;
 const ICON = 118;
 const GAP = 16;

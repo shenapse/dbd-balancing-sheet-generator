@@ -24,7 +24,7 @@ export interface IndexEntry<T> {
 /**
  * Normalised-name -> record index. Lookup precedence: canonical `names` first, then `aliases`.
  * If several DIFFERENT records match at the winning tier, {@link NameIndex.get} throws SheetError
- * listing the candidates (instead of the legacy silent last-wins).
+ * listing the candidates.
  */
 export class NameIndex<T> {
   private readonly canonical = new Map<string, Set<T>>();

@@ -23,7 +23,7 @@ import {
   TEXT_COLOR,
 } from './theme.js';
 
-// Layout constants (legacy item-sheet-generator).
+// Layout constants.
 const ITEM_ICON = 96;
 const ADDON_ICON = 56;
 const GAP = 12;

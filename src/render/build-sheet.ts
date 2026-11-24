@@ -31,7 +31,7 @@ import {
   registerFonts,
 } from './theme.js';
 
-// Layout constants (legacy build-sheet-generator.js).
+// Layout constants.
 const PERK = 118;
 const OFFERING = 118;
 const ITEM = 88;
@@ -52,7 +52,7 @@ const VIOL_LINE_H = 26;
 const VIOL_MARKER = 20;
 const VIOL_MARKER_GAP = 12;
 
-/** Legacy `Npt` font size in px (96 dpi). */
+/** `Npt` font size in px (96 dpi). */
 const F = fontPt;
 
 /** x is relative to PANEL_X; the table reproduces upstream's non-uniform gaps. */
@@ -243,7 +243,7 @@ async function loadRowIcons(env: BuildSheetEnv, model: BuildModel, slots: Slot[]
   return jobs.map((j, i) => ({ ...j, image: images[i] ?? null }));
 }
 
-/** The `YYYY-MM-DD HH:MM:SS` UTC stamp the legacy sheet prints. */
+/** The `YYYY-MM-DD HH:MM:SS` UTC stamp the sheet prints. */
 export function formatDateStamp(d: Date = new Date()): string {
   return d.toISOString().replace('T', ' ').replace(/\..+/, '');
 }
@@ -303,7 +303,7 @@ export async function renderSheet(env: BuildSheetEnv, opts: BuildSheetOptions): 
   ctx.fillStyle = BG_COLOR;
   ctx.fillRect(0, 0, width, height);
 
-  // 2. Lore art: scaled to LORE_W keeping its aspect ratio, top-aligned, clipped to the legacy
+  // 2. Lore art: scaled to LORE_W keeping its aspect ratio, top-aligned, clipped to the
   // 384x761 box and the row band. (Portraits range from ~443x972 to 512x867, so a fixed 384x761
   // draw would distort them.)
   if (loreImg) {

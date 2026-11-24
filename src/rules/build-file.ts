@@ -46,7 +46,7 @@ export interface BuildModel {
   filePath: string;
 }
 
-/** Top-level shape; field contents are checked by hand to keep the legacy messages. */
+/** Top-level shape; field contents are checked by hand for precise messages. */
 const buildFileSchema = z.looseObject({
   killer: z.unknown().optional(),
   balancing: z.unknown().optional(),

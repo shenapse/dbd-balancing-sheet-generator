@@ -18,7 +18,7 @@ export type AddonSection = z.infer<typeof addonSectionSchema>;
 
 /**
  * Add-on allow-list document. Unknown top-level keys (killerPerks, items, display, ...) are
- * tolerated, as in the legacy tool. The section is `addons:` or, if absent, top-level
+ * tolerated. The section is `addons:` or, if absent, top-level
  * default/allow/deny.
  */
 export const addonAllowListSchema = z.looseObject({
@@ -95,7 +95,7 @@ export function matchSelector(
 
 /**
  * Resolve the allowed power add-ons of one killer. Pure: reads only the catalog.
- * Semantics (legacy): start from `default` (allow = whole universe, deny = empty;
+ * Semantics: start from `default` (allow = whole universe, deny = empty;
  * missing = deny), remove `deny` matches, then add `allow` matches (allow wins).
  * Reusable by the `builds` command.
  *

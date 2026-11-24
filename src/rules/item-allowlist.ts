@@ -17,7 +17,7 @@ export type ItemBlock = z.infer<typeof itemBlockSchema>;
 export type ItemTypeConfig = z.infer<typeof itemTypeSchema>;
 
 /**
- * Item allow-list document. Unknown top-level keys are tolerated (legacy behaviour).
+ * Item allow-list document. Unknown top-level keys are tolerated.
  * Limit lists are validated in item-limits.ts.
  */
 export const itemAllowListSchema = z.looseObject({
@@ -73,7 +73,7 @@ export interface ItemTypeSelection {
   addons: ItemAddon[];
 }
 
-/** Item types in the order the legacy sheet shows them (dbd-assets data order differs). Unknown extras follow in data order. */
+/** Item types in the order the sheet shows them (dbd-assets data order differs). Unknown extras follow in data order. */
 export const ITEM_TYPE_ORDER = ['firecracker', 'flashlight', 'med-kit', 'toolbox', 'key', 'map', 'fog-vial'];
 
 /** Catalog items in sheet order (see {@link ITEM_TYPE_ORDER}). */
@@ -122,7 +122,7 @@ function resolveSelection<T extends { slug: string; name: string; rarity: number
  * Resolve the allowed item variants and item add-ons for every item type. Pure: reads only
  * the catalog. Reusable by the `builds` command.
  *
- * Semantics (legacy): per type, variants use the type's `default` falling back to
+ * Semantics: per type, variants use the type's `default` falling back to
  * `topDefault`; the type's add-ons use `addons.default`, falling back to the type's default,
  * then `topDefault`. Unknown keys under `items:` are an error. All catalog item types are
  * returned (in sheet order), including ones with nothing allowed.
