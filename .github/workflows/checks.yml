@@ -38,6 +38,14 @@ jobs:
         env:
           DBD_ASSETS_ROOT: ${{ github.workspace }}/dbd-assets-ci
 
+      - name: Upload regression diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-diffs
+          path: output-regression/
+          if-no-files-found: ignore
+
   docker:
     runs-on: ubuntu-latest
     steps:
