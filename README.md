@@ -149,6 +149,9 @@ npm run typecheck
 npm test
 ```
 
+`npm test` uses the dbd-assets commit in `dbd-assets.ref`, fetched from GitHub on first run,
+unless you set `DBD_ASSETS_ROOT` yourself.
+
 `DBD_ASSETS_ROOT` accepts a local checkout or a Git repository URL (HTTPS, SSH,
 or `file://`). Remote repositories are fetched on first use and cached under
 `$XDG_CACHE_HOME/balancing-sheet-generator/assets`, or
