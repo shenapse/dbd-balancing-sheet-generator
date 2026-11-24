@@ -33,11 +33,11 @@ export function readAssetsRef(root: string): string | null {
     /* fall through */
   }
   try {
-    const sha = execFileSync('git', ['-C', root, 'rev-parse', 'HEAD'], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim();
-    return sha || null;
+    const run = (args: string[]): string =>
+      execFileSync('git', ['-C', root, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    // Only trust the repo if root is its top level, not a plain directory inside some other repo.
+    if (fs.realpathSync(run(['rev-parse', '--show-toplevel'])) !== fs.realpathSync(root)) return null;
+    return run(['rev-parse', 'HEAD']) || null;
   } catch {
     return null;
   }
