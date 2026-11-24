@@ -68,8 +68,9 @@ any build breaks the allow-list.
 ## Regenerating
 
 ```bash
-DBD_ASSETS_ROOT=../dbd-assets examples/generate.sh
+examples/generate.sh
 ```
 
-`DBD_ASSETS_ROOT` must be a dbd-assets checkout at the commit in [`dbd-assets.ref`](../dbd-assets.ref).
-The sheets carry the generation date, so regenerating changes every PNG.
+The script uses the dbd-assets commit in [`dbd-assets.ref`](../dbd-assets.ref) unless
+`DBD_ASSETS_ROOT` is set. The sheets carry the generation date, so regenerating changes every PNG.
+The same inputs are also golden regression cases (see the README's "Regression tests").

@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # Regenerates the sample sheets in examples/sheets from examples/input.
 #
-#   DBD_ASSETS_ROOT=../dbd-assets examples/generate.sh
+#   examples/generate.sh
 #
-# DBD_ASSETS_ROOT should be a dbd-assets checkout at the commit in dbd-assets.ref.
+# Uses the dbd-assets commit in dbd-assets.ref unless DBD_ASSETS_ROOT / DBD_ASSETS_REF are set.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-: "${DBD_ASSETS_ROOT:?set DBD_ASSETS_ROOT to a dbd-assets checkout (see dbd-assets.ref)}"
+export DBD_ASSETS_ROOT="${DBD_ASSETS_ROOT:-https://github.com/shenapse/dbd-assets.git}"
+export DBD_ASSETS_REF="${DBD_ASSETS_REF:-$(tr -d '[:space:]' < dbd-assets.ref)}"
 
 in=examples/input
 out=examples/sheets
