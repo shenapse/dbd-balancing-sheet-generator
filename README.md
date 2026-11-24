@@ -140,15 +140,28 @@ merge to `main`.
 
 ## Development
 
-Requires Node 24+ and a dbd-assets checkout.
+Requires Node 24+. Remote assets also require Git (and an SSH client for SSH URLs).
 
 ```bash
 npm ci
-export DBD_ASSETS_ROOT=../dbd-assets        # see .env.example
+export DBD_ASSETS_ROOT=https://github.com/shenapse/dbd-assets.git  # or ../dbd-assets
+export DBD_ASSETS_REF=$(cat dbd-assets.ref) # optional: use the same pin as Docker
 npm run dev -- perks test/fixtures/perks/the-trapper.yaml --out output
 npm run typecheck
 npm test
 ```
+
+`DBD_ASSETS_ROOT` accepts a local checkout or a Git repository URL (HTTPS, SSH,
+or `file://`). Remote repositories are fetched on first use and cached under
+`$XDG_CACHE_HOME/balancing-sheet-generator/assets`, or
+`~/.cache/balancing-sheet-generator/assets` when `XDG_CACHE_HOME` is unset.
+Set `DBD_ASSETS_CACHE` to override that directory. The cache is keyed by URL and
+`DBD_ASSETS_REF` (a commit, tag, or branch; defaults to remote `HEAD`). Cached
+checkouts work offline and are reused without checking for updates; change the
+ref or delete the cache entry to fetch again. Local paths ignore these remote settings.
+The CLI does not automatically load `.env`; export the variables in your shell.
+Docker still uses its baked-in assets by default. When overriding it with a remote
+URL, also set `DBD_ASSETS_CACHE` to a writable directory, such as `/work/.dbd-assets-cache`.
 
 Local image build (uses the pinned SHA):
 

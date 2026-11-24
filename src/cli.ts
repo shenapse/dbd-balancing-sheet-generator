@@ -28,7 +28,10 @@ Options:
   --strict                exit 1 if violations are found
   -h, --help              show this help
 
-Environment: DBD_ASSETS_ROOT (default /opt/dbd-assets)
+Environment:
+  DBD_ASSETS_ROOT   local checkout or Git URL (default /opt/dbd-assets)
+  DBD_ASSETS_REF    remote commit, tag, or branch (default HEAD)
+  DBD_ASSETS_CACHE  directory for cached remote checkouts
 `;
 
 const COMMANDS = ['perks', 'addons', 'items', 'builds'] as const;

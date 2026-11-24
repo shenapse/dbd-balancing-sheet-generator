@@ -31,6 +31,9 @@ RUN git init -q . \
 
 # ---- runtime ----
 FROM node:24-bookworm-slim AS runtime
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git ca-certificates openssh-client \
+ && rm -rf /var/lib/apt/lists/*
 ARG DBD_ASSETS_REF
 ARG VERSION=dev
 ARG GIT_SHA=unknown
