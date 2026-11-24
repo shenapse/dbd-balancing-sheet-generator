@@ -1,9 +1,9 @@
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createCanvas, type Canvas, type Image, type SKRSContext2D } from '@napi-rs/canvas';
 import {
   itemAddonImagePath,
   itemVariantImagePath,
+  emptySlotImagePath,
   killerPortraitPath,
   loadImageCached,
   offeringImagePath,
@@ -89,13 +89,6 @@ export function rowSlots(isSurvivor: boolean): { slots: Slot[]; width: number } 
   return { slots, width: PANEL_W };
 }
 
-/** Empty-slot art shipped with this tool (dbd-assets has none). */
-const BLANK_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'assets', 'blank');
-const blankPath = (kind: SlotKind): string => {
-  const f = kind === 'addon' ? 'addon' : kind;
-  return path.join(BLANK_DIR, `${f}.png`);
-};
-
 /**
  * Image file a slot draws for one row: the record's icon, or the empty-slot art when the slot is
  * empty. Also returns a label for missing-image warnings.
@@ -111,23 +104,23 @@ export function slotIconPath(
       const p = row.perks[slot.index];
       return p
         ? { file: perkImagePath(assetsRoot, p), label: `perk "${p.name}"`, empty: false }
-        : { file: blankPath('perk'), label: 'empty perk slot', empty: true };
+        : { file: emptySlotImagePath(assetsRoot, 'perk'), label: 'empty perk slot', empty: true };
     }
     case 'offering': {
       const o = row.offering;
       return o
         ? { file: offeringImagePath(assetsRoot, o), label: `offering "${o.name}"`, empty: false }
-        : { file: blankPath('offering'), label: 'empty offering slot', empty: true };
+        : { file: emptySlotImagePath(assetsRoot, 'offering'), label: 'empty offering slot', empty: true };
     }
     case 'item': {
       const v = row.item;
       return v
         ? { file: itemVariantImagePath(assetsRoot, v), label: `item "${v.name}"`, empty: false }
-        : { file: blankPath('item'), label: 'empty item slot', empty: true };
+        : { file: emptySlotImagePath(assetsRoot, 'item'), label: 'empty item slot', empty: true };
     }
     case 'addon': {
       const a = row.addons[slot.index];
-      if (!a) return { file: blankPath('addon'), label: 'empty add-on slot', empty: true };
+      if (!a) return { file: emptySlotImagePath(assetsRoot, 'addon'), label: 'empty add-on slot', empty: true };
       const file = isSurvivor
         ? itemAddonImagePath(assetsRoot, a as ItemAddon)
         : powerAddonImagePath(assetsRoot, a as PowerAddon);

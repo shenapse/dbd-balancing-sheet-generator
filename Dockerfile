@@ -46,7 +46,6 @@ COPY --from=build /build/dist ./dist
 COPY --from=build /build/node_modules ./node_modules
 COPY package.json ./
 COPY fonts ./fonts
-COPY assets ./assets
 COPY --from=assets /opt/dbd-assets /opt/dbd-assets
 # /work is normally bind-mounted; any uid may run the tool (nothing writes to /app or /opt).
 RUN mkdir -p /work && chmod 777 /work
