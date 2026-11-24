@@ -26,6 +26,8 @@ import {
   TEXT_COLOR,
   VIOLATION_COLOR,
   font,
+  fontPt,
+  pt,
   registerFonts,
 } from './theme.js';
 
@@ -51,8 +53,7 @@ const VIOL_MARKER = 20;
 const VIOL_MARKER_GAP = 12;
 
 /** Legacy `Npt` font size in px (96 dpi). */
-const pt = (n: number): number => (n * 4) / 3;
-const F = (sizePt: number, weight: 'normal' | 'bold' = 'normal'): string => font(pt(sizePt), weight);
+const F = fontPt;
 
 /** x is relative to PANEL_X; the table reproduces upstream's non-uniform gaps. */
 const SLOT_X = {

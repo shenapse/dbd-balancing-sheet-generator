@@ -194,7 +194,12 @@ export interface RenderSheetArgs {
 
 const sideLabelOf = (side: Side): string => (side === 'killer' ? 'Allowed Killer Perks' : 'Allowed Survivor Perks');
 
-/** Render the full perk sheet to `<outDir>/<killerSlug>-<side>-perks.png`; returns the path. */
+/** Output path of a perk sheet: `<outDir>/<killerSlug>-<side>-perks[-icons].png`. */
+export function perkSheetPath(outDir: string, killerSlug: string, side: Side, iconsOnly = false): string {
+  return path.join(outDir, `${killerSlug}-${side}-perks${iconsOnly ? '-icons' : ''}.png`);
+}
+
+/** Render the full perk sheet to {@link perkSheetPath}; returns the path. */
 export async function renderSheet(env: PerkSheetEnv, a: RenderSheetArgs): Promise<string> {
   registerFonts();
   const { killer, perks, side, columns, balancing, dateLabel } = a;
@@ -281,7 +286,7 @@ export async function renderSheet(env: PerkSheetEnv, a: RenderSheetArgs): Promis
     drawComboSection(ctx, comboLayout, gridBottom + repH + pickH, images, width);
   }
 
-  const outFile = path.join(a.outDir, `${a.killerSlug}-${side}-perks.png`);
+  const outFile = perkSheetPath(a.outDir, a.killerSlug, side);
   await savePng(canvas, outFile);
   return outFile;
 }
@@ -312,7 +317,7 @@ export async function renderIconSheet(env: PerkSheetEnv, a: RenderIconSheetArgs)
   const ctx = canvas.getContext('2d');
   const images = await loadPerkImages(env, perks);
   drawIconGrid(ctx, perks.map((p) => images.get(p.slug) ?? null), { columns, icon: ICON, gap: GAP, placeholder: false });
-  const outFile = path.join(a.outDir, `${a.killerSlug}-${side}-perks-icons.png`);
+  const outFile = perkSheetPath(a.outDir, a.killerSlug, side, true);
   await savePng(canvas, outFile);
   return outFile;
 }

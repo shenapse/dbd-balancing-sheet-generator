@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { SheetError } from '../errors.js';
-import { DEFAULT_COLUMNS, renderIconSheet, renderSheet } from '../render/perk-sheet.js';
+import { DEFAULT_COLUMNS, perkSheetPath, renderIconSheet, renderSheet } from '../render/perk-sheet.js';
 import { loadPerkAllowlist } from '../rules/perk-allowlist.js';
 import type { RunCommand } from './types.js';
 
@@ -32,9 +32,9 @@ export const run: RunCommand = async (opts, ctx) => {
       { side: 'survivor', perks: al.allowedSurvivor, limits: al.survivorBuckets },
     ] as const;
     // Claim output names up front (same naming as the renderer) so a collision fails before any write.
-    for (const s of sides) reporter.claim(input, path.join(outDir, `${killerSlug}-${s.side}-perks.png`));
+    for (const s of sides) reporter.claim(input, perkSheetPath(outDir, killerSlug, s.side));
     if (opts.iconsOnly) {
-      for (const s of sides) reporter.claim(input, path.join(outDir, `${killerSlug}-${s.side}-perks-icons.png`));
+      for (const s of sides) reporter.claim(input, perkSheetPath(outDir, killerSlug, s.side, true));
     }
     for (const s of sides) {
       const out = await renderSheet(env, {
