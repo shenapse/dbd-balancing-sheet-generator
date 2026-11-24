@@ -7,11 +7,21 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
+# Why a reusable workflow instead of `workflow_run` on "CI": workflow_run for tag pushes is unreliable
+# (head_branch holds the tag name, the run uses the default branch's workflow file, and semver
+# metadata would have to be reconstructed from head_sha). Calling the same checks.yml and gating the
+# publish job with `needs:` keeps github.ref / tag context intact, so semver tags work unchanged.
 jobs:
+  checks:
+    uses: ./.github/workflows/checks.yml
+
   publish:
+    needs: checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
