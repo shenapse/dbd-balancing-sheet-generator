@@ -302,14 +302,16 @@ export async function renderSheet(env: BuildSheetEnv, opts: BuildSheetOptions): 
   ctx.fillStyle = BG_COLOR;
   ctx.fillRect(0, 0, width, height);
 
-  // 2. Lore art, clipped to the row band (top-anchored at 384x761).
+  // 2. Lore art: scaled to LORE_W keeping its aspect ratio, top-aligned, clipped to the legacy
+  // 384x761 box and the row band. (Portraits range from ~443x972 to 512x867, so a fixed 384x761
+  // draw would distort them.)
   if (loreImg) {
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, HEADER_H, LORE_W, rowBandH);
+    ctx.rect(0, HEADER_H, LORE_W, Math.min(rowBandH, LORE_H));
     ctx.clip();
     ctx.globalAlpha = LORE_ALPHA;
-    ctx.drawImage(loreImg, 0, HEADER_H, LORE_W, LORE_H);
+    ctx.drawImage(loreImg, 0, HEADER_H, LORE_W, (LORE_W * loreImg.height) / loreImg.width);
     ctx.globalAlpha = 1;
     // With a Violations section below, dissolve the last ~90px into the background so the clip
     // does not read as a hard cut across the body (a plain gradient fill, not destination-out).
