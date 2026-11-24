@@ -21,7 +21,7 @@ function formatZodError(filePath: string, err: z.ZodError): string {
     .join('\n');
 }
 
-const sideConfigSchema = z
+export const sideConfigSchema = z
   .looseObject({
     default: z.enum(['allow', 'deny']).nullish(),
     allow: z.array(z.unknown()).nullish(),
