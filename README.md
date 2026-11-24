@@ -171,26 +171,6 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" bsg:dev \
   perks test/fixtures/perks/the-trapper.yaml --out /work/output
 ```
 
-### Parity check
-
-Dev-only harness that runs the legacy JS generators (`../balancing-tool`, resolved from the repo root) and
-this CLI over every allow-list / build file in the arena data dir plus `test/fixtures`, then reports
-failures, file-set and dimension differences and pixel diff %:
-
-```bash
-npm run compare-legacy -- [--arena <dir>] [--legacy <dir>] [--out <dir>] [--only perks,addons,items,builds] \
-  [--new-cmd tsx|docker] [--image bsg:dev] [--all-composites]
-```
-
-Defaults: legacy checkout `../balancing-tool` (flag `--legacy` or env `BSG_LEGACY_ROOT`) and arena data
-`../dbd-arena-web/src/data/balancing` (flag `--arena` or env `BSG_ARENA_DIR`), both resolved from the repo root;
-`--out` defaults to a temp directory.
-
-Output: `<out>/report.md`, `report.json`, and `sidebyside/*.png` (old left, new right). Font and
-portrait-crop differences make non-zero pixel diffs expected; heights should match, widths may differ.
-
-Releases: pushing a `v*` tag publishes `:X.Y.Z`, `:X.Y`, `:X` and `:latest`.
-
 ## Documentation
 
 Per-command YAML schemas, selectors, limits and outputs: [docs/perks.md](docs/perks.md),
