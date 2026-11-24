@@ -32,6 +32,7 @@ Environment:
   DBD_ASSETS_ROOT   local checkout or Git URL (default /opt/dbd-assets)
   DBD_ASSETS_REF    remote commit, tag, or branch (default HEAD)
   DBD_ASSETS_CACHE  directory for cached remote checkouts
+  SOURCE_DATE_EPOCH date printed on sheets, in Unix seconds (default: now)
 `;
 
 const COMMANDS = ['perks', 'addons', 'items', 'builds'] as const;

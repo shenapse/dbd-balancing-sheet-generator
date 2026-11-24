@@ -244,7 +244,7 @@ async function loadRowIcons(env: BuildSheetEnv, model: BuildModel, slots: Slot[]
 }
 
 /** The `YYYY-MM-DD HH:MM:SS` UTC stamp the sheet prints. */
-export function formatDateStamp(d: Date = new Date()): string {
+export function formatDateStamp(d: Date): string {
   return d.toISOString().replace('T', ' ').replace(/\..+/, '');
 }
 

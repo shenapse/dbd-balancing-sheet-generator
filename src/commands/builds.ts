@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { now } from '../clock.js';
 import { SheetError } from '../errors.js';
 import { formatDateStamp, renderIconSheet, renderSheet } from '../render/build-sheet.js';
 import { savePng } from '../render/primitives.js';
@@ -18,7 +19,7 @@ export const run: RunCommand = async (opts, ctx) => {
   const { catalog, assetsRoot, reporter } = ctx;
   const outDir = path.resolve(opts.out);
   // One stamp per run so a batch shares a consistent timestamp.
-  const dateStamp = formatDateStamp();
+  const dateStamp = formatDateStamp(now());
 
   // Parsed once and reused across files: perk/item/add-on rules don't depend on the build file.
   const rules = opts.rules
