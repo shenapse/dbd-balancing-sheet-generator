@@ -120,10 +120,10 @@ describe('item layout and command', () => {
     expect(icons.bodyH).toBeLessThan(full.bodyH);
   });
 
-  it('writes sheet and icons for each file', async () => {
+  it('writes sheet and icons', async () => {
     const out = fs.mkdtempSync(path.join(os.tmpdir(), 'items-'));
     const reporter = newReporter();
-    await run({ files: [trapper, rules], out, iconsOnly: true, json: false, strict: false }, { catalog: cat, assetsRoot: root, reporter });
+    await run({ files: [trapper], out, iconsOnly: true, json: false, strict: false }, { catalog: cat, assetsRoot: root, reporter });
     expect(reporter.files[0]!.outputs.map((p) => path.basename(p))).toEqual(['The-Trapper-items.png', 'The-Trapper-items-icons.png']);
     for (const p of reporter.files.flatMap((f) => f.outputs)) expect(fs.statSync(p).size).toBeGreaterThan(500);
     expect(reporter.files.flatMap((f) => f.warnings)).toEqual([]);

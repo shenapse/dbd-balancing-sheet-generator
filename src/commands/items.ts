@@ -31,6 +31,7 @@ export const run: RunCommand = async (opts, ctx) => {
 
     const sheet = await renderSheet({ killer, groups, limits, balancing: doc.balancing, dateLabel, assetsRoot });
     const sheetPath = path.join(outDir, `${killerSlug}-items.png`);
+    reporter.claim(input, sheetPath);
     await savePng(sheet.canvas, sheetPath);
     reporter.output(input, sheetPath);
     for (const m of sheet.missing) reporter.warn(`missing image (drawn as placeholder): ${m}`, input);
@@ -47,6 +48,7 @@ export const run: RunCommand = async (opts, ctx) => {
       const icons = await renderIconSheet(groups, assetsRoot);
       if (icons) {
         const iconsPath = path.join(outDir, `${killerSlug}-items-icons.png`);
+        reporter.claim(input, iconsPath);
         await savePng(icons.canvas, iconsPath);
         reporter.output(input, iconsPath);
         for (const m of icons.missing) reporter.warn(`missing image (cell skipped): ${m}`, input);

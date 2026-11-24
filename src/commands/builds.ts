@@ -36,12 +36,14 @@ export const run: RunCommand = async (opts, ctx) => {
 
     const sheet = await renderSheet(env, { model, violations, rulesPath: rules?.rulesPath, dateStamp });
     const sheetPath = path.join(outDir, outputFilename(model, false));
+    reporter.claim(input, sheetPath);
     await savePng(sheet, sheetPath);
     reporter.output(input, sheetPath);
 
     if (opts.iconsOnly) {
       const icons = await renderIconSheet(env, { model, violations });
       const iconsPath = path.join(outDir, outputFilename(model, true));
+      reporter.claim(input, iconsPath);
       await savePng(icons, iconsPath);
       reporter.output(input, iconsPath);
     }

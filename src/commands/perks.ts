@@ -31,6 +31,11 @@ export const run: RunCommand = async (opts, ctx) => {
       { side: 'killer', perks: al.allowedKiller, limits: al.killerBuckets },
       { side: 'survivor', perks: al.allowedSurvivor, limits: al.survivorBuckets },
     ] as const;
+    // Claim output names up front (same naming as the renderer) so a collision fails before any write.
+    for (const s of sides) reporter.claim(input, path.join(outDir, `${killerSlug}-${s.side}-perks.png`));
+    if (opts.iconsOnly) {
+      for (const s of sides) reporter.claim(input, path.join(outDir, `${killerSlug}-${s.side}-perks-icons.png`));
+    }
     for (const s of sides) {
       const out = await renderSheet(env, {
         killer: al.killer,
