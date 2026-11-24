@@ -34,12 +34,13 @@ FROM node:24-bookworm-slim AS runtime
 ARG DBD_ASSETS_REF
 ARG VERSION=dev
 ARG GIT_SHA=unknown
-LABEL org.opencontainers.image.source="https://github.com/shenapse/balancing-sheet-generator" \
+LABEL org.opencontainers.image.source="https://github.com/shenapse/dbd-balancing-sheet-generator" \
       org.opencontainers.image.title="balancing-sheet-generator" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${GIT_SHA}" \
       io.github.shenapse.dbd-assets.ref="${DBD_ASSETS_REF}"
 ENV DBD_ASSETS_ROOT=/opt/dbd-assets \
+    BSG_VERSION=${VERSION} \
     NODE_ENV=production
 WORKDIR /app
 COPY --from=build /build/dist ./dist
