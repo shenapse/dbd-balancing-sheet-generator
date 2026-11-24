@@ -80,7 +80,7 @@ describe('addon allow-list resolution', () => {
 });
 
 describe('addons command', () => {
-  it('writes sheet and icons, resolves alias-named killers (legacy bug fix)', async () => {
+  it('writes sheet and icons, resolves alias-named killers', async () => {
     const out = fs.mkdtempSync(path.join(os.tmpdir(), 'addons-'));
     const reporter = newReporter();
     await run(opts([fx('alias-killer.yaml'), fx('the-trapper.yaml')], out, true), { catalog: cat, assetsRoot: root, reporter });

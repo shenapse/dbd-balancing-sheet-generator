@@ -104,7 +104,7 @@ describe('build file parsing', () => {
 });
 
 describe('build rules', () => {
-  it('flags the killer fixture violations in legacy order and text', () => {
+  it('flags the killer fixture violations in order and text', () => {
     const v = validateModel(cat, loadBuildFile(cat, killerFile), rules(), noWarn);
     expect(v.map((x) => [x.kind, x.rowIndex, x.text])).toEqual([
       ['combo-ban', 1, 'Build 2: may not bring "Scourge Hook: Pain Resonance" and "Pop Goes the Weasel" together.'],
@@ -179,7 +179,7 @@ describe('build rules', () => {
 });
 
 describe('build sheet rendering', () => {
-  it('lays out the legacy slot table', () => {
+  it('lays out the slot table', () => {
     const k = rowSlots(false).slots;
     const s = rowSlots(true).slots;
     expect(k.filter((x) => x.kind === 'item')).toHaveLength(0);
@@ -188,7 +188,7 @@ describe('build sheet rendering', () => {
     expect(s.find((x) => x.kind === 'item')).toMatchObject({ x: 740, y: 25, size: 88 });
   });
 
-  it('renders sheets with the legacy dimensions', async () => {
+  it('renders sheets with the expected dimensions', async () => {
     const warnings: string[] = [];
     const env = { assetsRoot: root, warn: (m: string) => warnings.push(m) };
     const model = loadBuildFile(cat, survivorFile);
