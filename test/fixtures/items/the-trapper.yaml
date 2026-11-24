@@ -1,7 +1,7 @@
 killer: The Trapper
 
 # Optional label identifying which balancing ruleset these allow-lists come from.
-# Shown on the generated sheet and stored in the --preset JSON.
+# Shown on the generated sheet.
 balancing: DBDLeague
 
 # Top-level default for any item type NOT listed under `items:` below.
@@ -40,7 +40,7 @@ items:
       default: deny
 
 # ---------------------------------------------------------------------------
-# Item limits (image-only — rendered on the sheet, NOT written to the --preset).
+# Item limits (rendered on the sheet only).
 # Each survivor brings exactly ONE item chosen from the allowed pool above, so
 # limits are about the TEAM or a DUO — a per-survivor scope would be meaningless.
 # Selectors are an item-variant name, or { type: <TypeName> } for a whole type.

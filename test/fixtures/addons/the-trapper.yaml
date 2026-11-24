@@ -1,9 +1,6 @@
 # Killer add-on allow-list example: The Trapper
 # Run from the repo root:
-#   node utilities/addon-sheet-generator/addon-sheet-generator.js \
-#        utilities/addon-sheet-generator/examples/the-trapper.yaml \
-#        --out utilities/addon-sheet-generator/output \
-#        --preset utilities/addon-sheet-generator/output/test-preset.json
+#   dbd-sheet addons test/fixtures/addons/the-trapper.yaml --out output
 
 killer: The Trapper
 balancing: DBDLeague

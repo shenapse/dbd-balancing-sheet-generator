@@ -1,15 +1,11 @@
 # Build sheet example: survivors going against The Trapper
 # Run from the repo root:
-#   node utilities/build-sheet-generator/build-sheet-generator.js \
-#        utilities/build-sheet-generator/examples/the-trapper-survivors.yaml \
-#        --out utilities/build-sheet-generator/output
+#   dbd-sheet builds test/fixtures/builds/the-trapper-survivors.yaml --out output
 #
 # Add --rules to flag illegal picks against an existing allow-list (they stay
 # in the sheet, just outlined in red):
-#   node utilities/build-sheet-generator/build-sheet-generator.js \
-#        utilities/build-sheet-generator/examples/the-trapper-survivors.yaml \
-#        --out utilities/build-sheet-generator/output \
-#        --rules sheetdata/examples/the-trapper.yaml
+#   dbd-sheet builds test/fixtures/builds/the-trapper-survivors.yaml --out output \
+#     --rules test/fixtures/rules/the-trapper.yaml
 
 killer: The Trapper           # OPTIONAL; drives the "Going against:" header + portrait
 balancing: DBDLeague
@@ -19,11 +15,11 @@ survivors:                    # 1-4 rows, one loadout per survivor
   # Row 1: a clean, fully legal build — the baseline row, with no --rules
   # violations, so the sheet isn't wall-to-wall red.
   - perks: [Sprint Burst, Windows of Opportunity, Prove Thyself, Resilience]
-    item: Sport Flashlight    # an Items.json VARIANT name; the only item allowed by
-                               # sheetdata/examples/the-trapper.yaml's items: block
+    item: Sport Flashlight    # an item VARIANT name; the only item allowed by
+                               # test/fixtures/rules/the-trapper.yaml's items: block
     addons: [Wide Lens, Power Bulb]   # both Common rarity -> legal under that file's
                                       # items.Flashlight.addons allow-list
-    offering: Shroud of Union         # from Offerings.json Survivor[]
+    offering: Shroud of Union         # a survivor offering
 
   # Row 2: only 2 perks -> exercises the blank perk slot; only 1 add-on ->
   # exercises the blank add-on slot; no offering -> exercises the blank

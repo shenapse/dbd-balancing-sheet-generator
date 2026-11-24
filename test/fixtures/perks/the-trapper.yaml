@@ -1,17 +1,14 @@
 # Perk allow-list example: The Trapper
 # Run from the repo root:
-#   node utilities/perk-sheet-generator/perk-sheet-generator.js \
-#        utilities/perk-sheet-generator/examples/the-trapper.yaml \
-#        --out utilities/perk-sheet-generator/output \
-#        --preset utilities/perk-sheet-generator/output/test-preset.json
+#   dbd-sheet perks test/fixtures/perks/the-trapper.yaml --out output
 
 killer: The Trapper
 
 # Optional label identifying which balancing ruleset these allow-lists come from.
-# Shown on both generated sheets and stored in the --preset JSON.
+# Shown on both generated sheets.
 balancing: DBDLeague
 
-# universe is optional; defaults to every perk in dbdperks.json for each side.
+# universe is optional; defaults to every dbd-assets perk for each side.
 # universe:
 #   killer: all
 #   survivor: all
@@ -46,7 +43,7 @@ survivorPerks:
     - Solidarity
   deny: []
 
-# Combination bans (image-only — rendered on the sheets, NOT written to --preset).
+# Combination bans (rendered on the sheets only).
 # Each perk stays individually allowed; only the listed pairings are restricted.
 # Grouped by scope, in increasing strictness:
 #   survivor — one player may not bring both perks
@@ -64,8 +61,7 @@ survivorComboBans:
 killerComboBans:
   - ["Scourge Hook: Pain Resonance", Pop Goes the Weasel]
 
-# Repetition limits (image-only — rendered on the survivor sheet, NOT written to
-# --preset). A limit caps how many members of a scoped group may each bring the SAME
+# Repetition limits (rendered on the survivor sheet only). A limit caps how many members of a scoped group may each bring the SAME
 # perk (unlike a combo ban, which restricts a set of DIFFERENT perks together).
 # Survivor side only; scopes are duo and team.
 #   scope: duo | team
@@ -81,7 +77,7 @@ survivorRepetitionLimits:
       - Self-Care
       - Botany Knowledge
 
-# Pick limits (image-only — rendered on the sheets, NOT written to --preset).
+# Pick limits (rendered on the sheets only).
 # "Pick at most N perks from this list." A group may bring at most `max` perks drawn
 # from `perks` in total. If `max` equals (list length - 1) the limit reduces to a
 # combination ban ("not all of them together") and is rendered under Combination Bans

@@ -1,13 +1,11 @@
 # Perk allow-list example: The Trapper
+# Also used as the --rules file for test/fixtures/builds/.
 # Run from the repo root:
-#   node utilities/perk-sheet-generator/perk-sheet-generator.js \
-#        utilities/perk-sheet-generator/examples/the-trapper.yaml \
-#        --out utilities/perk-sheet-generator/output \
-#        --preset utilities/perk-sheet-generator/output/test-preset.json
+#   dbd-sheet perks test/fixtures/rules/the-trapper.yaml --out output
 
 killer: The Trapper
 
-# universe is optional; defaults to every perk in dbdperks.json for each side.
+# universe is optional; defaults to every dbd-assets perk for each side.
 # universe:
 #   killer: all
 #   survivor: all
@@ -43,7 +41,7 @@ survivorPerks:
     - Solidarity
   deny: []
 
-# Combination bans (image-only — rendered on the sheets, NOT written to --preset).
+# Combination bans (rendered on the sheets only).
 # Each perk stays individually allowed; only the listed pairings are restricted.
 # Grouped by scope, in increasing strictness:
 #   survivor — one player may not bring both perks

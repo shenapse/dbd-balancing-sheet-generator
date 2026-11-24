@@ -1,17 +1,13 @@
 # Build sheet example: The Trapper (killer side)
 # Run from the repo root:
-#   node utilities/build-sheet-generator/build-sheet-generator.js \
-#        utilities/build-sheet-generator/examples/the-trapper-killer.yaml \
-#        --out utilities/build-sheet-generator/output
+#   dbd-sheet builds test/fixtures/builds/the-trapper-killer.yaml --out output
 #
 # Add --rules to flag illegal picks against an existing allow-list (they stay
 # in the sheet, just outlined in red):
-#   node utilities/build-sheet-generator/build-sheet-generator.js \
-#        utilities/build-sheet-generator/examples/the-trapper-killer.yaml \
-#        --out utilities/build-sheet-generator/output \
-#        --rules sheetdata/examples/the-trapper.yaml
+#   dbd-sheet builds test/fixtures/builds/the-trapper-killer.yaml --out output \
+#     --rules test/fixtures/rules/the-trapper.yaml
 
-killer: The Trapper           # required; matched against Killers.json Name + Aliases
+killer: The Trapper           # required; matched against dbd-assets killer names and aliases
 
 # Optional label identifying which balancing ruleset these builds were played under.
 # Rendered top-right; purely informational, not consumed by --rules.
@@ -26,12 +22,12 @@ builds:                       # 1-4 rows, each an alternate loadout for this kil
       - Discordance
       - Lethal Pursuer
       - Bitter Murmur
-    addons: [Trapper Bag, Bloody Coil]     # both from The Trapper's own pool in NewAddons.json
-    offering: Ebony Memento Mori           # from Offerings.json Killer[]
+    addons: [Trapper Bag, Bloody Coil]     # both from The Trapper's own add-on pool
+    offering: Ebony Memento Mori           # a killer offering
 
   # Row 2: only 3 perks -> exercises the blank perk slot. Also plants a
   # killerComboBans violation: this exact pair is banned together in
-  # sheetdata/examples/the-trapper.yaml, even though each perk is individually
+  # test/fixtures/rules/the-trapper.yaml, even though each perk is individually
   # legal there.
   - perks:
       - "Scourge Hook: Pain Resonance"   # names with a colon MUST be quoted in YAML
@@ -44,7 +40,7 @@ builds:                       # 1-4 rows, each an alternate loadout for this kil
   # offering -> exercises the blank offering slot. Also plants two individual
   # killerPerks.deny violations.
   - perks:
-      - Dead Man's Switch     # denied by sheetdata/examples/the-trapper.yaml killerPerks.deny
+      - Dead Man's Switch     # denied by test/fixtures/rules/the-trapper.yaml killerPerks.deny
       - Starstruck             # also denied there (The Trickster perk)
       - Nowhere to Hide
       - Territorial Imperative

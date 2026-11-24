@@ -3,7 +3,7 @@
 
 killer: The Blight
 balancing: DBD Arena - 1v4 Quartet Rank v1.1
-# universe is optional; defaults to every perk in dbdperks.json for each side.
+# universe is optional; defaults to every dbd-assets perk for each side.
 # universe:
 #   killer: all
 #   survivor: all
