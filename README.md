@@ -176,3 +176,5 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" bsg:dev \
 Per-command YAML schemas, selectors, limits and outputs: [docs/perks.md](docs/perks.md),
 [docs/addons.md](docs/addons.md), [docs/items.md](docs/items.md),
 [docs/builds.md](docs/builds.md).
+
+Sample inputs and the sheets each command renders from them: [examples/](examples/README.md).
