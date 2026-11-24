@@ -15,7 +15,7 @@ dbd-sheet builds test/fixtures/builds/the-trapper-killer.yaml \
 
 # via Docker
 docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" \
-  ghcr.io/shenapse/balancing-sheet-generator:latest \
+  ghcr.io/shenapse/dbd-balancing-sheet-generator:latest \
   builds test/fixtures/builds/the-trapper-killer.yaml \
          test/fixtures/builds/the-trapper-survivors.yaml \
          --rules test/fixtures/rules/the-trapper.yaml --out /work/output --json
@@ -34,8 +34,8 @@ dbd-sheet builds <file.yaml...>
      [--strict]               Exit 1 if any violation is found
 ```
 
-There is no `--columns`: row width is fixed by the slot layout (4 perks + offering +
-optional item + 2 add-ons); it does not wrap.
+There is no `--columns`: passing it is an error (exit 2). Row width is fixed by the slot layout (4 perks +
+offering + optional item + 2 add-ons); it does not wrap.
 
 ## YAML schema
 

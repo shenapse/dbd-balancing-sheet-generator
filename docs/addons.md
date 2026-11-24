@@ -13,7 +13,7 @@ dbd-sheet addons test/fixtures/addons/the-trapper.yaml --out output
 
 # via Docker
 docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" \
-  ghcr.io/shenapse/balancing-sheet-generator:latest \
+  ghcr.io/shenapse/dbd-balancing-sheet-generator:latest \
   addons test/fixtures/addons/the-trapper.yaml --out /work/output --json
 ```
 

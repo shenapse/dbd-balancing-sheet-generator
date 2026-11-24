@@ -13,7 +13,7 @@ dbd-sheet items test/fixtures/items/the-trapper.yaml --out output
 
 # via Docker
 docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" \
-  ghcr.io/shenapse/balancing-sheet-generator:latest \
+  ghcr.io/shenapse/dbd-balancing-sheet-generator:latest \
   items test/fixtures/items/the-trapper.yaml --out /work/output --json
 ```
 
@@ -25,6 +25,8 @@ dbd-sheet items <file.yaml...>
      [--icons-only]       Also write a text-free, transparent icon-strip PNG
      [--json]             Print a JSON summary on stdout
 ```
+
+`--columns` is not supported for items: passing it is an error (exit 2).
 
 ## Data model
 

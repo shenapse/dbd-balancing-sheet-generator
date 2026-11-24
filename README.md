@@ -8,7 +8,7 @@ Generates Dead by Daylight balancing sheets as PNGs from YAML files:
 - **builds**: concrete killer/survivor builds, optionally checked against an allow-list
 
 It is a TypeScript tool distributed only as a Docker image
-(`ghcr.io/shenapse/balancing-sheet-generator`). Game data and icons come from
+(`ghcr.io/shenapse/dbd-balancing-sheet-generator`). Game data and icons come from
 [shenapse/dbd-assets](https://github.com/shenapse/dbd-assets), pinned by commit and baked into
 the image. There is no JavaScript API.
 
@@ -16,7 +16,7 @@ the image. There is no JavaScript API.
 
 ```bash
 docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" \
-  ghcr.io/shenapse/balancing-sheet-generator:<tag> \
+  ghcr.io/shenapse/dbd-balancing-sheet-generator:<tag> \
   builds killer-builds.yaml --rules rules.yaml --out out --json
 ```
 
@@ -65,7 +65,8 @@ error.
 | 3 | unexpected internal error |
 
 Human-readable progress and warnings go to **stderr**; stdout carries only the `--json` summary.
-Errors print `error: ...` on stderr and produce no JSON.
+Errors print `error: ...` on stderr. With `--json`, the summary is still printed on stdout and carries a
+top-level `"error"` field (see below); the exit code is unchanged (2 or 3).
 
 ### JSON summary (`--json`)
 
@@ -78,7 +79,7 @@ Errors print `error: ...` on stderr and produce no JSON.
   "files": [
     {
       "input": "killer-builds.yaml",
-      "outputs": ["out/The-Trapper-killer-builds.png"],
+      "outputs": ["/work/out/The-Trapper-killer-builds.png"],
       "warnings": [],
       "violations": [{ "rule": "combo-ban", "message": "..." }]
     }
@@ -87,9 +88,17 @@ Errors print `error: ...` on stderr and produce no JSON.
 }
 ```
 
-`violations` is present only for `builds` when rules were checked. Each violation has at least
+`outputs` are **absolute** paths (the container paths, e.g. `/work/out/...` under Docker, so strip the
+bind-mount prefix to get the host path). `error` is present only when the run failed: it holds the message,
+and `files` lists whatever was written or attempted before the failure. `violations` is present only for `builds` when rules were checked. Each violation has at least
 `rule` and `message`, and may carry extra fields (scope, build row, ...). Top-level `warnings`
 are not tied to one input.
+
+Each output path may be produced by only one input per run. If two inputs would write the same file
+(for example two allow-lists for the same killer), the run fails with a `SheetError` (exit 2) before the
+second write; use separate runs or different `--out` directories.
+
+`--columns` applies to `perks` and `addons` only; `items` and `builds` reject it with an error.
 
 ## Name resolution
 
@@ -120,8 +129,8 @@ fetches exactly that commit, keeps `data/` and `images/`, and writes the SHA to
 `/opt/dbd-assets/.ref`. The SHA is reported by:
 
 ```bash
-docker run --rm ghcr.io/shenapse/balancing-sheet-generator:latest version
-docker image inspect ghcr.io/shenapse/balancing-sheet-generator:latest \
+docker run --rm ghcr.io/shenapse/dbd-balancing-sheet-generator:latest version
+docker image inspect ghcr.io/shenapse/dbd-balancing-sheet-generator:latest \
   --format '{{ index .Config.Labels "io.github.shenapse.dbd-assets.ref" }}'
 ```
 
@@ -151,14 +160,18 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" bsg:dev \
 
 ### Parity check
 
-Dev-only harness that runs the legacy JS generators (`/home/shenadillo/project/balancing-tool`) and
+Dev-only harness that runs the legacy JS generators (`../balancing-tool`, resolved from the repo root) and
 this CLI over every allow-list / build file in the arena data dir plus `test/fixtures`, then reports
 failures, file-set and dimension differences and pixel diff %:
 
 ```bash
-npm run compare-legacy -- [--arena <dir>] [--out <dir>] [--only perks,addons,items,builds] \
+npm run compare-legacy -- [--arena <dir>] [--legacy <dir>] [--out <dir>] [--only perks,addons,items,builds] \
   [--new-cmd tsx|docker] [--image bsg:dev] [--all-composites]
 ```
+
+Defaults: legacy checkout `../balancing-tool` (flag `--legacy` or env `BSG_LEGACY_ROOT`) and arena data
+`../dbd-arena-web/src/data/balancing` (flag `--arena` or env `BSG_ARENA_DIR`), both resolved from the repo root;
+`--out` defaults to a temp directory.
 
 Output: `<out>/report.md`, `report.json`, and `sidebyside/*.png` (old left, new right). Font and
 portrait-crop differences make non-zero pixel diffs expected; heights should match, widths may differ.

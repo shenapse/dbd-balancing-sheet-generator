@@ -3,7 +3,7 @@
  * rewrite over the same inputs and reports differences (failures, file sets,
  * dimensions, pixel diff %). Never exits non-zero unless the harness crashes.
  *
- *   npx tsx scripts/compare-legacy.ts [--arena <dir>] [--out <dir>]
+ *   npx tsx scripts/compare-legacy.ts [--arena <dir>] [--legacy <dir>] [--out <dir>]
  *     [--only perks,addons,items,builds] [--new-cmd tsx|docker] [--image <tag>]
  *     [--all-composites] [--concurrency <n>]
  */
@@ -18,7 +18,6 @@ import { load } from 'js-yaml';
 
 type Tool = 'perks' | 'addons' | 'items' | 'builds';
 const ALL_TOOLS: Tool[] = ['perks', 'addons', 'items', 'builds'];
-const LEGACY_ROOT = '/home/shenadillo/project/balancing-tool';
 const LEGACY_SCRIPT: Record<Tool, string> = {
   perks: 'utilities/perk-sheet-generator/perk-sheet-generator.js',
   addons: 'utilities/addon-sheet-generator/addon-sheet-generator.js',
@@ -26,6 +25,7 @@ const LEGACY_SCRIPT: Record<Tool, string> = {
   builds: 'utilities/build-sheet-generator/build-sheet-generator.js',
 };
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+/** Legacy checkout; default is a sibling of this repo. Override with --legacy or BSG_LEGACY_ROOT. */
 const DIFF_THRESHOLD = 32;
 const COMPOSITE_MIN_DIFF = 0.02;
 
@@ -48,7 +48,8 @@ interface CaseResult {
 
 const { values: opt } = parseArgs({
   options: {
-    arena: { type: 'string', default: '/home/shenadillo/project/dbd-arena-web/src/data/balancing' },
+    arena: { type: 'string' },
+    legacy: { type: 'string' },
     out: { type: 'string' },
     only: { type: 'string' },
     'new-cmd': { type: 'string', default: 'tsx' },
@@ -57,8 +58,13 @@ const { values: opt } = parseArgs({
     concurrency: { type: 'string', default: '4' },
   },
 });
+const LEGACY_ROOT = path.resolve(REPO, opt.legacy ?? process.env.BSG_LEGACY_ROOT ?? '../balancing-tool');
+const ARENA_DIR = path.resolve(
+  REPO,
+  opt.arena ?? process.env.BSG_ARENA_DIR ?? '../dbd-arena-web/src/data/balancing',
+);
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-const OUT = path.resolve(opt.out ?? `/tmp/claude-1000/-home-shenadillo-project-balancing-sheet-generator/7e6691c9-19e7-4dbb-ab36-8c012665d423/scratchpad/parity/${stamp}`);
+const OUT = path.resolve(opt.out ?? path.join(os.tmpdir(), `bsg-parity-${stamp}`));
 const tools = (opt.only ? opt.only.split(',').map((s) => s.trim()) : ALL_TOOLS).filter((t): t is Tool =>
   (ALL_TOOLS as string[]).includes(t));
 const docker = opt['new-cmd'] === 'docker';
@@ -221,7 +227,7 @@ const dimStr = (s?: [number, number]): string => (s ? `${s[0]}x${s[1]}` : '-');
 function writeReport(results: CaseResult[]): void {
   const L: string[] = [];
   const cnt = (cat: CaseResult['category']): number => results.filter((r) => r.category === cat).length;
-  L.push('# Legacy parity report', '', `Generated ${new Date().toISOString()} | new-cmd: ${opt['new-cmd']} | tools: ${tools.join(',')} | arena: ${opt.arena}`, '');
+  L.push('# Legacy parity report', '', `Generated ${new Date().toISOString()} | new-cmd: ${opt['new-cmd']} | tools: ${tools.join(',')} | arena: ${ARENA_DIR}`, '');
   L.push('## Summary', '', '| Tool | Cases | ok | new-failure | unsupported-by-design | old-failure | both-failed |', '|---|---|---|---|---|---|---|');
   for (const t of tools) {
     const rs = results.filter((r) => r.tool === t);
@@ -259,7 +265,7 @@ function writeReport(results: CaseResult[]): void {
 
 async function main(): Promise<void> {
   fs.mkdirSync(OUT, { recursive: true });
-  const cases = discover(opt.arena ?? '');
+  const cases = discover(ARENA_DIR);
   console.error(`${cases.length} cases -> ${OUT} (cpus: ${os.cpus().length})`);
   const results = await pool(cases, Math.max(1, Number(opt.concurrency)), runCase);
   writeReport(results);
