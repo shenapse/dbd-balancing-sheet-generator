@@ -1,0 +1,6 @@
+# {exhaustion: true} selectors were removed in the rewrite; this file must fail with a clear error.
+killer: The Trapper
+survivorPerks:
+  default: deny
+  allow:
+    - { exhaustion: true }

@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import yaml from 'js-yaml';
+import { load as yamlLoad } from 'js-yaml'; // js-yaml 5 has no default export
 import type { ZodError } from 'zod';
 import { SheetError } from '../errors.js';
 
@@ -12,7 +12,7 @@ export function loadYamlFile(filePath: string): unknown {
     throw new SheetError(`Cannot read "${filePath}": ${(e as Error).message}`);
   }
   try {
-    return yaml.load(text);
+    return yamlLoad(text);
   } catch (e) {
     throw new SheetError(`Invalid YAML in "${filePath}": ${(e as Error).message}`);
   }

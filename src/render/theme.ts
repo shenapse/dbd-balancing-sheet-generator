@@ -37,13 +37,19 @@ export const SCOPE_COLORS = {
 } as const;
 
 export const FONT_FAMILY = 'Noto Sans';
+/**
+ * @napi-rs/canvas ignores the weight when two files share one family name (the last registered
+ * file wins), so each weight is registered under its own family and {@link font} picks it.
+ */
+export const FONT_FAMILIES = { normal: 'Noto Sans Regular', bold: 'Noto Sans Bold' } as const;
 
 /**
  * CSS font string. `font(28, 'bold')` => `bold 28px "Noto Sans"`, replacing legacy
  * `'bold 28px sans-serif'`. Legacy `12pt` sizes: use `font(16, ...)` (12pt = 16px).
  */
 export function font(sizePx: number, weight: 'normal' | 'bold' | number = 'normal'): string {
-  return `${weight} ${sizePx}px "${FONT_FAMILY}"`;
+  const bold = weight === 'bold' || (typeof weight === 'number' && weight >= 600);
+  return `${sizePx}px "${bold ? FONT_FAMILIES.bold : FONT_FAMILIES.normal}"`;
 }
 
 /** Package root (fonts/ lives there); same relative depth from src/render and dist/render. */
@@ -52,11 +58,14 @@ export const FONTS_DIR = path.join(PACKAGE_ROOT, 'fonts');
 
 let fontsRegistered = false;
 
-/** Register fonts/NotoSans-{Regular,Bold}.ttf under family "Noto Sans". Idempotent. */
+/** Register fonts/NotoSans-{Regular,Bold}.ttf under {@link FONT_FAMILIES}. Idempotent. */
 export function registerFonts(): void {
   if (fontsRegistered) return;
-  for (const f of ['NotoSans-Regular.ttf', 'NotoSans-Bold.ttf']) {
-    if (!GlobalFonts.registerFromPath(path.join(FONTS_DIR, f), FONT_FAMILY)) {
+  for (const [f, family] of [
+    ['NotoSans-Regular.ttf', FONT_FAMILIES.normal],
+    ['NotoSans-Bold.ttf', FONT_FAMILIES.bold],
+  ] as const) {
+    if (!GlobalFonts.registerFromPath(path.join(FONTS_DIR, f), family)) {
       throw new Error(`Failed to register font ${f} from ${FONTS_DIR}`);
     }
   }

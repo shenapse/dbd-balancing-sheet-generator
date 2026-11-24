@@ -257,7 +257,7 @@ describe('pick limits and classification', () => {
 });
 
 describe('allow-list documents', () => {
-  const y = path.join(FX, 'perks', 'the-trapper-explicit.yaml');
+  const y = path.join(FX, 'perks', 'the-trapper.yaml');
   it('resolves the Trapper fixture (unknown top-level keys tolerated)', () => {
     const { w, warn } = collect();
     const al = loadPerkAllowlist(cat, y, { warn });
@@ -273,8 +273,8 @@ describe('allow-list documents', () => {
     const withExtra = resolvePerkAllowlist(cat, { killer: 'Trapper', addons: { default: 'allow' }, display: { x: 1 } }, y, { warn: noop });
     expect(withExtra.killer.name).toBe('The Trapper');
   });
-  it('the original fixture with an exhaustion selector now fails clearly', () => {
-    expect(err(() => loadPerkAllowlist(cat, path.join(FX, 'perks', 'the-trapper.yaml'), { warn: noop }))).toMatch(
+  it('a file with an exhaustion selector fails clearly', () => {
+    expect(err(() => loadPerkAllowlist(cat, path.join(FX, 'perks', 'exhaustion-unsupported.yaml'), { warn: noop }))).toMatch(
       /exhaustion selectors are no longer supported/,
     );
   });

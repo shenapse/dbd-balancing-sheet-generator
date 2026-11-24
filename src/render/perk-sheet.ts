@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { createCanvas, GlobalFonts, type Image, type SKRSContext2D } from '@napi-rs/canvas';
+import { createCanvas, type Image, type SKRSContext2D } from '@napi-rs/canvas';
 import type { Killer, Perk, Side } from '../assets/catalog.js';
 import {
   drawIconOrPlaceholder,
@@ -16,7 +16,7 @@ import {
   type LimitScope,
   type PerkLimit,
 } from '../rules/perk-limits.js';
-import { BG_COLOR, DIVIDER_COLOR, FONTS_DIR, GREY_888, GREY_AAA, GREY_DDD, RULE_TEXT_COLOR, SUBTEXT_COLOR, TEXT_COLOR, registerFonts } from './theme.js';
+import { BG_COLOR, DIVIDER_COLOR, GREY_888, GREY_AAA, GREY_DDD, RULE_TEXT_COLOR, SUBTEXT_COLOR, TEXT_COLOR, font, registerFonts } from './theme.js';
 import { drawScopeChip, roundRectPath, savePng, SCOPE_META } from './primitives.js';
 
 // Layout constants (legacy perk-sheet-generator.js).
@@ -37,20 +37,7 @@ const REP_PILL_H = 34;
 /** Legacy `Npt` font size in px (96 dpi). */
 const pt = (n: number): number => (n * 4) / 3;
 
-/**
- * @napi-rs/canvas ignores weight when two files share one family name (the last registered file
- * wins), so regular and bold text use two dedicated family aliases registered here.
- */
-const FAMILY = { normal: 'Noto Sans Regular', bold: 'Noto Sans Bold' } as const;
-let aliasesRegistered = false;
-function registerPerkSheetFonts(): void {
-  registerFonts();
-  if (aliasesRegistered) return;
-  GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'NotoSans-Regular.ttf'), FAMILY.normal);
-  GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'NotoSans-Bold.ttf'), FAMILY.bold);
-  aliasesRegistered = true;
-}
-const F = (sizePt: number, weight: 'normal' | 'bold' = 'normal'): string => `${pt(sizePt)}px "${FAMILY[weight]}"`;
+const F = (sizePt: number, weight: 'normal' | 'bold' = 'normal'): string => font(pt(sizePt), weight);
 
 /** Services the renderer needs; no globals, no console. */
 export interface PerkSheetEnv {
@@ -355,7 +342,7 @@ const sideLabelOf = (side: Side): string => (side === 'killer' ? 'Allowed Killer
 
 /** Render the full perk sheet to `<outDir>/<killerSlug>-<side>-perks.png`; returns the path. */
 export async function renderSheet(env: PerkSheetEnv, a: RenderSheetArgs): Promise<string> {
-  registerPerkSheetFonts();
+  registerFonts();
   const { killer, perks, side, columns, balancing, dateLabel } = a;
   const duplicateLimits = a.limits.duplicate;
   const pickLimits = a.limits.pick;

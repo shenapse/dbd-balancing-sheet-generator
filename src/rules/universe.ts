@@ -1,27 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { load as yamlLoad } from 'js-yaml';
 import type { Catalog, Side } from '../assets/catalog.js';
 import { SheetError } from '../errors.js';
+import { load as yamlLoad } from 'js-yaml';
+import { loadYamlFile } from './yaml.js';
 import { sideIndex, type UniverseList } from './perk-selectors.js';
 
-/**
- * Read and parse a YAML file (SheetError on failure). Uses the named js-yaml import, which works
- * with js-yaml 5 (no default export) at runtime.
- */
-export function readYamlFile(filePath: string): unknown {
-  let text: string;
-  try {
-    text = fs.readFileSync(filePath, 'utf8');
-  } catch (e) {
-    throw new SheetError(`Cannot read file "${filePath}": ${(e as Error).message}`);
-  }
-  try {
-    return yamlLoad(text);
-  } catch (e) {
-    throw new SheetError(`YAML parse error in "${filePath}": ${(e as Error).message}`);
-  }
-}
+/** @deprecated alias of {@link loadYamlFile}; kept for existing imports. */
+export const readYamlFile = loadYamlFile;
 
 /** Allowed top-level keys of a universe file. */
 export const UNIVERSE_FILE_KEYS = ['name', 'description', 'killer', 'survivor'] as const;

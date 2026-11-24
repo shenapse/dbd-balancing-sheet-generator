@@ -44,7 +44,6 @@ survivorPerks:
     - Inner Strength
     - Resilience
     - Solidarity
-    - { exhaustion: true }  # Group selector: every exhaustion perk (Sprint Burst is covered but adding the group catches future ones)
   deny: []
 
 # Combination bans (image-only — rendered on the sheets, NOT written to --preset).
