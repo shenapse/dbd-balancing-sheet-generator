@@ -1,0 +1,6 @@
+# {exhaustion: true} selectors are not supported; this file must fail with a clear error.
+killer: The Trapper
+survivorPerks:
+  default: deny
+  allow:
+    - { exhaustion: true }

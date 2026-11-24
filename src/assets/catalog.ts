@@ -4,7 +4,7 @@ import { SheetError } from '../errors.js';
 
 export type Side = 'killer' | 'survivor';
 
-/** Rarity index -> label. Items use 0-5, add-ons 0-4. Verified against legacy data. */
+/** Rarity index -> label. Items use 0-5, add-ons 0-4. */
 export const RARITY = ['Common', 'Uncommon', 'Rare', 'Very Rare', 'Ultra Rare', 'Event'] as const;
 export type RarityIndex = 0 | 1 | 2 | 3 | 4 | 5;
 

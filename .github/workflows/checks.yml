@@ -1,0 +1,102 @@
+# Reusable CI jobs (tests + Docker smoke test). Called by ci.yml (PRs, main) and publish.yml
+# (main, v* tags) so an image is only published after exactly these checks pass.
+name: Checks
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - name: Read pinned dbd-assets ref
+        id: assets
+        run: echo "ref=$(tr -d '[:space:]' < dbd-assets.ref)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out dbd-assets
+        uses: actions/checkout@v4
+        with:
+          repository: shenapse/dbd-assets
+          ref: ${{ steps.assets.outputs.ref }}
+          path: dbd-assets-ci
+
+      - run: npm test
+        env:
+          DBD_ASSETS_ROOT: ${{ github.workspace }}/dbd-assets-ci
+
+      - name: Upload regression diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-diffs
+          path: output-regression/
+          if-no-files-found: ignore
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Read pinned dbd-assets ref
+        id: assets
+        run: echo "ref=$(tr -d '[:space:]' < dbd-assets.ref)" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          push: false
+          tags: bsg:ci
+          build-args: |
+            DBD_ASSETS_REF=${{ steps.assets.outputs.ref }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          run() { docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" bsg:ci "$@"; }
+          out=smoke-out
+          mkdir -p "$out"
+
+          run version
+
+          check() { # <name> <json-file>
+            jq -e '.files | length > 0' "$2" > /dev/null
+            jq -r '.files[].outputs[]' "$2" | while read -r png; do
+              png="${png#/work/}"  # container path -> host path
+              test -s "$png" || { echo "missing PNG: $png" >&2; exit 1; }
+            done
+            echo "$1 ok"
+          }
+
+          run perks test/fixtures/perks/the-trapper.yaml --out /work/$out --json > "$out/perks.json"
+          check perks "$out/perks.json"
+
+          run addons test/fixtures/addons/the-trapper.yaml --out /work/$out --json > "$out/addons.json"
+          check addons "$out/addons.json"
+
+          run items test/fixtures/items/the-trapper.yaml --out /work/$out --json > "$out/items.json"
+          check items "$out/items.json"
+
+          run builds test/fixtures/builds/the-trapper-killer.yaml \
+            test/fixtures/builds/the-trapper-survivors.yaml \
+            --rules test/fixtures/rules/the-trapper.yaml --out /work/$out --json > "$out/builds.json"
+          check builds "$out/builds.json"

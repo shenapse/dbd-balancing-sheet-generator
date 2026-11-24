@@ -1,0 +1,308 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`golden regression > addons-alias-killer 1`] = `
+{
+  "assetsRef": null,
+  "command": "addons",
+  "files": [
+    {
+      "input": "test/fixtures/addons/alias-killer.yaml",
+      "outputs": [
+        "The-Cannibal-killer-addons.png",
+      ],
+      "warnings": [],
+    },
+  ],
+  "tool": "balancing-sheet-generator",
+  "version": "test",
+  "warnings": [],
+}
+`;
+
+exports[`golden regression > addons-blight 1`] = `
+{
+  "assetsRef": null,
+  "command": "addons",
+  "files": [
+    {
+      "input": "examples/input/blight-allowlist.yaml",
+      "outputs": [
+        "The-Blight-killer-addons.png",
+        "The-Blight-killer-addons-icons.png",
+      ],
+      "warnings": [],
+    },
+  ],
+  "tool": "balancing-sheet-generator",
+  "version": "test",
+  "warnings": [],
+}
+`;
+
+exports[`golden regression > addons-the-trapper 1`] = `
+{
+  "assetsRef": null,
+  "command": "addons",
+  "files": [
+    {
+      "input": "test/fixtures/addons/the-trapper.yaml",
+      "outputs": [
+        "The-Trapper-killer-addons.png",
+        "The-Trapper-killer-addons-icons.png",
+      ],
+      "warnings": [],
+    },
+  ],
+  "tool": "balancing-sheet-generator",
+  "version": "test",
+  "warnings": [],
+}
+`;
+
+exports[`golden regression > builds-blight-survivors 1`] = `
+{
+  "assetsRef": null,
+  "command": "builds",
+  "files": [
+    {
+      "input": "examples/input/blight-survivor-builds.yaml",
+      "outputs": [
+        "The-Blight-survivor-builds.png",
+      ],
+      "violations": [],
+      "warnings": [],
+    },
+  ],
+  "tool": "balancing-sheet-generator",
+  "version": "test",
+  "warnings": [],
+}
+`;
+
+exports[`golden regression > builds-lich-killer 1`] = `
+{
+  "assetsRef": null,
+  "command": "builds",
+  "files": [
+    {
+      "input": "examples/input/lich-killer-builds.yaml",
+      "outputs": [
+        "The-Lich-killer-builds.png",
+      ],
+      "violations": [],
+      "warnings": [],
+    },
+  ],
+  "tool": "balancing-sheet-generator",
+  "version": "test",
+  "warnings": [],
+}
+`;
+
+exports[`golden regression > builds-the-trapper 1`] = `
+{
+  "assetsRef": null,
+  "command": "builds",
+  "files": [
+    {
+      "input": "test/fixtures/builds/the-trapper-killer.yaml",
+      "outputs": [
+        "The-Trapper-killer-builds.png",
+        "The-Trapper-killer-builds-icons.png",
+      ],
+      "violations": [
+        {
+          "message": "Build 2: may not bring "Scourge Hook: Pain Resonance" and "Pop Goes the Weasel" together.",
+          "row": 2,
+          "rule": "combo-ban",
+          "slots": [
+            "perk:1",
+            "perk:2",
+          ],
+        },
+        {
+          "message": "Build 3: "Dead Man's Switch" is not on the allowed killer perk list.",
+          "row": 3,
+          "rule": "perk-banned",
+          "slots": [
+            "perk:1",
+          ],
+        },
+        {
+          "message": "Build 3: "Starstruck" is not on the allowed killer perk list.",
+          "row": 3,
+          "rule": "perk-banned",
+          "slots": [
+            "perk:2",
+          ],
+        },
+      ],
+      "warnings": [],
+    },
+    {
+      "input": "test/fixtures/builds/the-trapper-survivors.yaml",
+      "outputs": [
+        "The-Trapper-survivor-builds.png",
+        "The-Trapper-survivor-builds-icons.png",
+      ],
+      "violations": [
+        {
+          "message": "Survivor 2: "Empathy" is not on the allowed survivor perk list.",
+          "row": 2,
+          "rule": "perk-banned",
+          "slots": [
+            "perk:1",
+          ],
+        },
+        {
+          "message": "Survivor 2: "First Aid Kit" is not on the allowed item list.",
+          "row": 2,
+          "rule": "item-banned",
+          "slots": [
+            "item:1",
+          ],
+        },
+        {
+          "message": "Survivor 3: may not bring "Prove Thyself" and "Botany Knowledge" together.",
+          "row": 3,
+          "rule": "combo-ban",
+          "slots": [
+            "perk:1",
+            "perk:2",
+          ],
+        },
+        {
+          "message": "Survivor 4: "Intense Halogen" is not on the allowed Flashlight add-on list.",
+          "row": 4,
+          "rule": "item-addon-banned",
+          "slots": [
+            "addon:1",
+          ],
+        },
+      ],
+      "warnings": [],
+    },
+  ],
+  "tool": "balancing-sheet-generator",
+  "version": "test",
+  "warnings": [],
+}
+`;
+
+exports[`golden regression > builds-the-trapper-no-rules 1`] = `
+{
+  "assetsRef": null,
+  "command": "builds",
+  "files": [
+    {
+      "input": "test/fixtures/builds/the-trapper-killer.yaml",
+      "outputs": [
+        "The-Trapper-killer-builds.png",
+      ],
+      "warnings": [],
+    },
+  ],
+  "tool": "balancing-sheet-generator",
+  "version": "test",
+  "warnings": [],
+}
+`;
+
+exports[`golden regression > items-blight 1`] = `
+{
+  "assetsRef": null,
+  "command": "items",
+  "files": [
+    {
+      "input": "examples/input/blight-allowlist.yaml",
+      "outputs": [
+        "The-Blight-items.png",
+        "The-Blight-items-icons.png",
+      ],
+      "warnings": [],
+    },
+  ],
+  "tool": "balancing-sheet-generator",
+  "version": "test",
+  "warnings": [],
+}
+`;
+
+exports[`golden regression > items-the-trapper 1`] = `
+{
+  "assetsRef": null,
+  "command": "items",
+  "files": [
+    {
+      "input": "test/fixtures/items/the-trapper.yaml",
+      "outputs": [
+        "The-Trapper-items.png",
+      ],
+      "warnings": [],
+    },
+  ],
+  "tool": "balancing-sheet-generator",
+  "version": "test",
+  "warnings": [],
+}
+`;
+
+exports[`golden regression > perks-blight 1`] = `
+{
+  "assetsRef": null,
+  "command": "perks",
+  "files": [
+    {
+      "input": "examples/input/blight-allowlist.yaml",
+      "outputs": [
+        "The-Blight-killer-perks.png",
+        "The-Blight-survivor-perks.png",
+        "The-Blight-killer-perks-icons.png",
+        "The-Blight-survivor-perks-icons.png",
+      ],
+      "warnings": [],
+    },
+  ],
+  "tool": "balancing-sheet-generator",
+  "version": "test",
+  "warnings": [],
+}
+`;
+
+exports[`golden regression > perks-exhaustion-unsupported 1`] = `
+{
+  "assetsRef": null,
+  "command": "perks",
+  "error": "exhaustion selectors are no longer supported; list the perks explicitly (file "<repo>/test/fixtures/perks/exhaustion-unsupported.yaml").",
+  "files": [
+    {
+      "input": "test/fixtures/perks/exhaustion-unsupported.yaml",
+      "outputs": [],
+      "warnings": [],
+    },
+  ],
+  "tool": "balancing-sheet-generator",
+  "version": "test",
+  "warnings": [],
+}
+`;
+
+exports[`golden regression > perks-the-trapper 1`] = `
+{
+  "assetsRef": null,
+  "command": "perks",
+  "files": [
+    {
+      "input": "test/fixtures/perks/the-trapper.yaml",
+      "outputs": [
+        "The-Trapper-killer-perks.png",
+        "The-Trapper-survivor-perks.png",
+      ],
+      "warnings": [],
+    },
+  ],
+  "tool": "balancing-sheet-generator",
+  "version": "test",
+  "warnings": [],
+}
+`;

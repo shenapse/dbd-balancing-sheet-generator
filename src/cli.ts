@@ -20,7 +20,7 @@ Commands:
 
 Options:
   --out <dir>             output directory (default ./output)
-  --columns <n>           icon columns
+  --columns <n>           icon columns (perks and addons only)
   --rules <file>          rules file (builds)
   --universes-dir <dir>   universe files directory
   --icons-only            render icons only
@@ -28,12 +28,18 @@ Options:
   --strict                exit 1 if violations are found
   -h, --help              show this help
 
-Environment: DBD_ASSETS_ROOT (default /opt/dbd-assets)
+Environment:
+  DBD_ASSETS_ROOT   local checkout or Git URL (default /opt/dbd-assets)
+  DBD_ASSETS_REF    remote commit, tag, or branch (default HEAD)
+  DBD_ASSETS_CACHE  directory for cached remote checkouts
 `;
 
 const COMMANDS = ['perks', 'addons', 'items', 'builds'] as const;
 
 function packageVersion(): string {
+  // Docker images set BSG_VERSION from the release tag; package.json is only the source-checkout version.
+  const env = process.env.BSG_VERSION?.trim();
+  if (env && env !== 'dev') return env;
   const pkgPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json');
   return (JSON.parse(fs.readFileSync(pkgPath, 'utf8')) as { version: string }).version;
 }
@@ -102,11 +108,16 @@ async function main(argv: string[]): Promise<number> {
     process.stdout.write(USAGE);
     return 0;
   }
+  if (opts.columns !== undefined && (cmd === 'items' || cmd === 'builds')) {
+    throw new SheetError(`--columns is not supported by "${cmd}" (perks and addons only).`);
+  }
   const assetsRoot = resolveAssetsRoot();
   const reporter = new Reporter(
     { tool: 'balancing-sheet-generator', version, assetsRef: readAssetsRef(assetsRoot), command: cmd },
     false,
   );
+  // Make the reporter reachable from the error handler so --json still gets a summary.
+  if (opts.json) failureReporter = reporter;
   const ctx: CommandContext = { catalog: loadCatalog(assetsRoot), assetsRoot, reporter };
   const { run } = (await import(`./commands/${cmd}.js`)) as { run: RunCommand };
   await run(opts, ctx);
@@ -114,14 +125,23 @@ async function main(argv: string[]): Promise<number> {
   return opts.strict && reporter.hasViolations ? 1 : 0;
 }
 
+/** Set once a `--json` run has a reporter; lets failures emit the summary with an `error` field. */
+let failureReporter: Reporter | null = null;
+
+function fail(message: string, stderrText: string, code: number): never {
+  process.stderr.write(stderrText);
+  if (failureReporter) {
+    failureReporter.error = message;
+    failureReporter.emitJson();
+  }
+  process.exit(code);
+}
+
 main(process.argv.slice(2)).then(
   (code) => process.exit(code),
   (err: unknown) => {
-    if (err instanceof SheetError) {
-      process.stderr.write(`error: ${err.message}\n`);
-      process.exit(2);
-    }
-    process.stderr.write(`${err instanceof Error ? (err.stack ?? err.message) : String(err)}\n`);
-    process.exit(3);
+    if (err instanceof SheetError) fail(err.message, `error: ${err.message}\n`, 2);
+    const message = err instanceof Error ? err.message : String(err);
+    fail(message, `${err instanceof Error ? (err.stack ?? err.message) : String(err)}\n`, 3);
   },
 );

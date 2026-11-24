@@ -24,7 +24,7 @@ export interface IndexEntry<T> {
 /**
  * Normalised-name -> record index. Lookup precedence: canonical `names` first, then `aliases`.
  * If several DIFFERENT records match at the winning tier, {@link NameIndex.get} throws SheetError
- * listing the candidates (instead of the legacy silent last-wins).
+ * listing the candidates.
  */
 export class NameIndex<T> {
   private readonly canonical = new Map<string, Set<T>>();
@@ -80,6 +80,16 @@ const perkEntries = (perks: Perk[]): IndexEntry<Perk>[] =>
     aliases: [...(p.renamedFrom ? [p.renamedFrom.name] : []), ...p.aliases, ...p.abbreviations],
   }));
 
+/** Uncached name index over any list of perks (e.g. a narrowed universe): canonical name > renamed_from / aliases / abbreviations. */
+export function perkNameIndex(perks: Perk[]): NameIndex<Perk> {
+  return new NameIndex(perkEntries(perks), (p) => p.name);
+}
+
+/** Cached name index over ALL perks of one side (what {@link findPerk} queries). */
+export function perkIndex(cat: Catalog, side: Side): NameIndex<Perk> {
+  return cached(cat, `perk:${side}`, () => perkNameIndex(cat.perksBySide[side]));
+}
+
 const killerEntries = (ks: Killer[]): IndexEntry<Killer>[] =>
   ks.map((k) => ({
     record: k,
@@ -98,7 +108,7 @@ export function findKiller(cat: Catalog, text: string): Killer | undefined {
 
 /** Perk on the given side by name, former name (renamed_from), alias or abbreviation. */
 export function findPerk(cat: Catalog, side: Side, text: string): Perk | undefined {
-  return cached(cat, `perk:${side}`, () => new NameIndex(perkEntries(cat.perksBySide[side]), (p) => p.name)).get(text);
+  return perkIndex(cat, side).get(text);
 }
 
 /** Perk on either side (use to produce a "this is a survivor perk" message). */

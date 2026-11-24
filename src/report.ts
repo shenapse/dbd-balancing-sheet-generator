@@ -1,3 +1,6 @@
+import path from 'node:path';
+import { SheetError } from './errors.js';
+
 /** A rule violation found in a build (shape is owned by the builds command). */
 export interface Violation {
   /** Rule kind, e.g. `combo-ban`, `pick-limit`. */
@@ -31,6 +34,8 @@ export interface Report {
   files: FileReport[];
   /** Warnings not tied to a single input file. */
   warnings: string[];
+  /** Present only when the run failed: the error message. Files written before the failure stay listed. */
+  error?: string;
 }
 
 /**
@@ -40,6 +45,10 @@ export interface Report {
 export class Reporter {
   readonly files: FileReport[] = [];
   readonly warnings: string[] = [];
+  /** Set when the run failed; emitted as the top-level `error` field. */
+  error?: string;
+  /** Output path -> input that claimed it. */
+  private readonly claimed = new Map<string, string>();
 
   constructor(
     readonly meta: { tool: string; version: string; assetsRef: string | null; command: string },
@@ -71,8 +80,24 @@ export class Reporter {
     this.log(`warning: ${message}`);
   }
 
-  /** Record a written output file for `input` (also logged). */
+  /**
+   * Claim `outputPath` for `input` without recording it as written. Throws SheetError if a different
+   * input already claimed it in this run. Call before writing so the second write never happens.
+   */
+  claim(input: string, outputPath: string): void {
+    const key = path.resolve(outputPath);
+    const owner = this.claimed.get(key);
+    if (owner !== undefined && owner !== input) {
+      throw new SheetError(
+        `${outputPath} would be written twice in one run (from ${owner} and ${input}); use separate runs or --out directories.`,
+      );
+    }
+    this.claimed.set(key, input);
+  }
+
+  /** Record a written output file for `input` (also logged). Throws SheetError on a cross-input collision. */
   output(input: string, outputPath: string): void {
+    this.claim(input, outputPath);
     this.file(input).outputs.push(outputPath);
     this.log(`wrote ${outputPath}`);
   }
@@ -89,7 +114,12 @@ export class Reporter {
   }
 
   toJSON(): Report {
-    return { ...this.meta, files: this.files, warnings: this.warnings };
+    return {
+      ...this.meta,
+      files: this.files,
+      warnings: this.warnings,
+      ...(this.error !== undefined ? { error: this.error } : {}),
+    };
   }
 
   /** Print the JSON summary to stdout. */

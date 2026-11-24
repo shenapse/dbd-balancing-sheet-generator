@@ -32,6 +32,12 @@ export const killerPortraitPath = (root: string, killerSlug: string): string =>
 export const powerIconPath = (root: string, killerSlug: string): string =>
   img(root, 'powers', killerSlug, 'icon.webp');
 
+/** Slots that have generic empty-slot art in dbd-assets. */
+export type EmptySlot = 'perk' | 'item' | 'addon' | 'offering';
+
+/** images/ui/empty-slot/<slot>.webp — generic art for an unfilled build slot (not a record). */
+export const emptySlotImagePath = (root: string, slot: EmptySlot): string =>
+  img(root, 'ui', 'empty-slot', `${slot}.webp`);
 
 const imageCache = new Map<string, Promise<Image | null>>();
 

@@ -1,7 +1,8 @@
+import { existsSync } from 'node:fs';
 import { createCanvas } from '@napi-rs/canvas';
 import { describe, expect, it } from 'vitest';
 import {
-  drawIconOrPlaceholder, drawPortraitSquare, killerPortraitPath, loadImageCached, perkImagePath,
+  drawIconOrPlaceholder, drawPortraitSquare, emptySlotImagePath, killerPortraitPath, loadImageCached, perkImagePath,
 } from '../src/assets/images.js';
 import { drawScopeChip, SCOPE_META } from '../src/render/primitives.js';
 import { font, registerFonts } from '../src/render/theme.js';
@@ -24,5 +25,11 @@ describe('render smoke', () => {
   });
   it('returns null for missing images', async () => {
     expect(await loadImageCached('/nonexistent.webp')).toBeNull();
+  });
+});
+
+describe('empty-slot art', () => {
+  it.each(['perk', 'item', 'addon', 'offering'] as const)('%s image exists in dbd-assets', (slot) => {
+    expect(existsSync(emptySlotImagePath(root, slot))).toBe(true);
   });
 });

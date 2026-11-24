@@ -1,20 +1,24 @@
 import fs from 'node:fs';
-import yaml from 'js-yaml';
+import { load as yamlLoad } from 'js-yaml'; // js-yaml 5 has no default export
 import type { ZodError } from 'zod';
 import { SheetError } from '../errors.js';
 
-/** Read and parse a YAML file. Throws SheetError (with the path) on read or parse failure. */
-export function loadYamlFile(filePath: string): unknown {
+/**
+ * Read and parse a YAML file. Throws SheetError (with the path) on read or parse failure.
+ * @param what optional noun for messages, e.g. `'universe file'` => `Cannot read universe file "x"`
+ */
+export function loadYamlFile(filePath: string, what = ''): unknown {
+  const noun = what ? `${what} ` : '';
   let text: string;
   try {
     text = fs.readFileSync(filePath, 'utf8');
   } catch (e) {
-    throw new SheetError(`Cannot read "${filePath}": ${(e as Error).message}`);
+    throw new SheetError(`Cannot read ${noun}"${filePath}": ${(e as Error).message}`);
   }
   try {
-    return yaml.load(text);
+    return yamlLoad(text);
   } catch (e) {
-    throw new SheetError(`Invalid YAML in "${filePath}": ${(e as Error).message}`);
+    throw new SheetError(`Invalid YAML in ${noun}"${filePath}": ${(e as Error).message}`);
   }
 }
 
