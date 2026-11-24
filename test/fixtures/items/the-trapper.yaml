@@ -1,0 +1,67 @@
+killer: The Trapper
+
+# Optional label identifying which balancing ruleset these allow-lists come from.
+# Shown on the generated sheet and stored in the --preset JSON.
+balancing: DBDLeague
+
+# Top-level default for any item type NOT listed under `items:` below.
+# deny = none of that type's variants/add-ons are allowed.
+default: deny
+
+items:
+  # Only the Sport Flashlight variant, with a handful of allowed add-ons.
+  Flashlight:
+    default: deny
+    allow:
+      - Sport Flashlight
+    addons:
+      default: deny
+      allow:
+        - Wide Lens
+        - Power Bulb
+        - Leather Grip
+        - Battery
+
+  # All Med-Kit variants except the Anniversary one; all add-ons except the strong heal.
+  Med-Kit:
+    default: allow
+    deny:
+      - Anniversary Med-Kit
+    addons:
+      default: allow
+      deny:
+        - Styptic Agent
+        - Anti-Haemorrhagic Syringe
+
+  # Allow every Toolbox variant, but no add-ons at all.
+  Toolbox:
+    default: allow
+    addons:
+      default: deny
+
+# ---------------------------------------------------------------------------
+# Item limits (image-only — rendered on the sheet, NOT written to the --preset).
+# Each survivor brings exactly ONE item chosen from the allowed pool above, so
+# limits are about the TEAM or a DUO — a per-survivor scope would be meaningless.
+# Selectors are an item-variant name, or { type: <TypeName> } for a whole type.
+# ---------------------------------------------------------------------------
+
+# Duplicate limits: "how many survivors may bring the SAME item."
+#   scope: duo | team
+#   max:   positive integer — at most this many members may bring any one item
+#   items: "all" (or omitted) → every allowed item; or a list → only those items
+itemDuplicateLimits:
+  - scope: team
+    max: 1                 # no two survivors may bring the same item
+    items: all
+
+# Pick limits: "the group may bring at most N items drawn from this set."
+#   scope: duo | team
+#   max:   positive integer (must be less than the number of listed items)
+#   items: a list of 2+ selectors (variant names and/or { type: ... })
+itemPickLimits:
+  - scope: team
+    max: 2                 # at most two healing/repair items across the team
+    items:
+      - { type: Med-Kit }  # any Med-Kit variant counts toward the 2
+      - { type: Toolbox }
