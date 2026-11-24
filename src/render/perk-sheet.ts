@@ -1,13 +1,7 @@
 import path from 'node:path';
 import { createCanvas, type Image, type SKRSContext2D } from '@napi-rs/canvas';
 import type { Killer, Perk, Side } from '../assets/catalog.js';
-import {
-  drawIconOrPlaceholder,
-  drawPortraitSquare,
-  killerPortraitPath,
-  loadImageCached,
-  perkImagePath,
-} from '../assets/images.js';
+import { killerPortraitPath, perkImagePath } from '../assets/images.js';
 import {
   comboGroupRuleText,
   pickRuleText,
@@ -16,28 +10,35 @@ import {
   type LimitScope,
   type PerkLimit,
 } from '../rules/perk-limits.js';
-import { BG_COLOR, DIVIDER_COLOR, GREY_888, GREY_AAA, GREY_DDD, RULE_TEXT_COLOR, SUBTEXT_COLOR, TEXT_COLOR, font, registerFonts } from './theme.js';
-import { drawScopeChip, roundRectPath, savePng, SCOPE_META } from './primitives.js';
+import { drawSheetHeader, measureSheetHeader, type HeaderLine, type SheetHeaderSpec } from './header.js';
+import { drawIconGrid } from './icon-grid.js';
+import { createImageLoader, type ImageLoader } from './image-loader.js';
+import {
+  buildLimitSection,
+  drawLimitSection,
+  drawLimitSlot,
+  drawRuleHead,
+  drawSectionHead,
+  LIMIT_ICON,
+  LIMIT_NAME_H,
+  LIMIT_ROW_GAP,
+  MARGIN,
+  RULE_HEAD_H,
+  ruleTextWidth,
+  SECTION_HEAD_H,
+  slotWidth,
+  type LimitEntry,
+  type LimitSectionLayout,
+} from './limit-section.js';
+import { savePng, SCOPE_META } from './primitives.js';
+import { BG_COLOR, fontPt, GREY_888, GREY_AAA, registerFonts, TEXT_COLOR } from './theme.js';
 
 // Layout constants (legacy perk-sheet-generator.js).
 export const DEFAULT_COLUMNS = 8;
 const ICON = 118;
 const GAP = 16;
-const MARGIN = 32;
 const HEADER_H = 190;
-const COMBO_ICON = 72;
 const COMBO_PLUS_W = 40;
-const COMBO_ROW_GAP = 20;
-const COMBO_NAME_H = 22;
-const COMBO_SECTION_GAP = 28;
-const CHIP_W = 156;
-const REP_ICON_GAP = 24;
-const REP_PILL_H = 34;
-
-/** Legacy `Npt` font size in px (96 dpi). */
-const pt = (n: number): number => (n * 4) / 3;
-
-const F = (sizePt: number, weight: 'normal' | 'bold' = 'normal'): string => font(pt(sizePt), weight);
 
 /** Services the renderer needs; no globals, no console. */
 export interface PerkSheetEnv {
@@ -49,40 +50,32 @@ export interface PerkSheetEnv {
 
 type PerkImages = Map<string, Image | null>;
 
-async function loadPerkImages(env: PerkSheetEnv, perks: Perk[]): Promise<PerkImages> {
-  const uniq = [...new Map(perks.map((p) => [p.slug, p])).values()];
-  const imgs = await Promise.all(uniq.map((p) => loadImageCached(perkImagePath(env.assetsRoot, p))));
-  const map: PerkImages = new Map();
-  uniq.forEach((p, i) => {
-    const img = imgs[i] ?? null;
-    if (!img) env.warn(`missing icon for perk "${p.name}" (${perkImagePath(env.assetsRoot, p)})`);
-    map.set(p.slug, img);
-  });
-  return map;
-}
+/** One loader per env (= per input file), so a missing file warns once across both sheets. */
+const loaders = new WeakMap<PerkSheetEnv, ImageLoader>();
+const loaderFor = (env: PerkSheetEnv): ImageLoader => {
+  let l = loaders.get(env);
+  if (!l) loaders.set(env, (l = createImageLoader(env.warn)));
+  return l;
+};
 
-interface Slot {
+const loadPerkImages = (env: PerkSheetEnv, perks: Perk[]): Promise<PerkImages> =>
+  loaderFor(env).loadMap(
+    perks,
+    (p) => p.slug,
+    (p) => {
+      const filePath = perkImagePath(env.assetsRoot, p);
+      return { filePath, message: `missing icon for perk "${p.name}" (${filePath})` };
+    },
+  );
+
+interface PerkEntry extends LimitEntry {
   perk: Perk;
-  slotW: number;
 }
-interface SectionRule {
-  scope: LimitScope;
-  max: number;
-  perks: Perk[] | null;
-  meta: { label: string; color: string };
-  text: string;
-  slots: Slot[] | null;
-  pillW: number;
-  contentH: number;
-}
-interface RuleLayout {
-  rules: SectionRule[];
-  width: number;
-  height: number;
-}
+const toEntry = (perk: Perk): PerkEntry => ({ key: perk.slug, label: perk.name, perk });
+
 interface ComboCombo {
   perks: Perk[];
-  slots: Slot[];
+  slots: { entry: PerkEntry; slotW: number }[];
 }
 interface ComboGroup {
   scope: LimitScope;
@@ -96,21 +89,7 @@ interface ComboLayout {
   height: number;
 }
 
-const SECTION_HEAD_H = COMBO_SECTION_GAP + 2 + 16 + 40 + 24 + 8;
-
 type Measure = SKRSContext2D;
-
-function iconSlots(measure: Measure, perks: Perk[]): { slots: Slot[]; rowW: number } {
-  measure.font = F(12);
-  let rowW = MARGIN * 2;
-  const slots = perks.map((p) => {
-    const slotW = Math.max(COMBO_ICON, Math.ceil(measure.measureText(p.name).width) + 8);
-    rowW += slotW + REP_ICON_GAP;
-    return { perk: p, slotW };
-  });
-  rowW -= REP_ICON_GAP;
-  return { slots, rowW };
-}
 
 /** Layout of the combination-ban section; null when there are no combos. */
 export function buildComboLayout(comboBans: PerkLimit[], measure: Measure): ComboLayout | null {
@@ -126,134 +105,45 @@ export function buildComboLayout(comboBans: PerkLimit[], measure: Measure): Comb
   }
   let width = 0;
   for (const g of groups) {
-    measure.font = F(14);
     g.ruleText = comboGroupRuleText(g.scope, g.combos);
-    width = Math.max(width, MARGIN + CHIP_W + 16 + Math.ceil(measure.measureText(g.ruleText).width) + MARGIN);
+    width = Math.max(width, ruleTextWidth(measure, g.ruleText));
     for (const combo of g.combos) {
-      measure.font = F(12);
+      measure.font = fontPt(12);
       const n = combo.perks.length;
       let rowW = MARGIN * 2;
       combo.slots = combo.perks.map((p, i) => {
-        const slotW = Math.max(COMBO_ICON, Math.ceil(measure.measureText(p.name).width) + 8);
+        const slotW = slotWidth(measure, p.name);
         rowW += slotW;
         if (i < n - 1) rowW += COMBO_PLUS_W;
-        return { perk: p, slotW };
+        return { entry: toEntry(p), slotW };
       });
       width = Math.max(width, rowW);
     }
   }
   let height = SECTION_HEAD_H;
   for (const g of groups) {
-    height += 12 + 30 + 10;
-    height += g.combos.length * (COMBO_ICON + COMBO_NAME_H + COMBO_ROW_GAP);
+    height += RULE_HEAD_H;
+    height += g.combos.length * (LIMIT_ICON + LIMIT_NAME_H + LIMIT_ROW_GAP);
   }
   return { groups, width, height };
 }
 
 /** Layout of the duplicate (repetition) section; null when there are none. */
-export function buildRepetitionLayout(limits: PerkLimit[], measure: Measure): RuleLayout | null {
-  if (limits.length === 0) return null;
-  const rules: SectionRule[] = [];
-  let width = 0;
-  for (const rule of limits) {
-    const meta = SCOPE_META[rule.scope];
-    const text = repetitionRuleText(rule);
-    measure.font = F(14);
-    width = Math.max(width, MARGIN + CHIP_W + 16 + Math.ceil(measure.measureText(text).width) + MARGIN);
-    let slots: Slot[] | null = null;
-    let pillW = 0;
-    let contentH: number;
-    if (rule.perks) {
-      const s = iconSlots(measure, rule.perks);
-      slots = s.slots;
-      width = Math.max(width, s.rowW);
-      contentH = COMBO_ICON + COMBO_NAME_H;
-    } else {
-      measure.font = F(12, 'bold');
-      pillW = Math.ceil(measure.measureText('ALL PERKS').width) + 28;
-      width = Math.max(width, MARGIN * 2 + pillW);
-      contentH = REP_PILL_H;
-    }
-    rules.push({ scope: rule.scope, max: rule.max, perks: rule.perks, meta, text, slots, pillW, contentH });
-  }
-  let height = SECTION_HEAD_H;
-  for (const r of rules) height += 12 + 30 + 10 + r.contentH + COMBO_ROW_GAP;
-  return { rules, width, height };
+export function buildRepetitionLayout(limits: PerkLimit[], measure: Measure): LimitSectionLayout<PerkEntry> | null {
+  return buildLimitSection(
+    limits.map((r) => ({ scope: r.scope, text: repetitionRuleText(r), entries: r.perks?.map(toEntry) ?? null })),
+    'ALL PERKS',
+    measure,
+  );
 }
 
 /** Layout of the pick-limit section; null when there are none. */
-export function buildPickLayout(picks: PerkLimit[], measure: Measure): RuleLayout | null {
-  if (picks.length === 0) return null;
-  const rules: SectionRule[] = [];
-  let width = 0;
-  for (const rule of picks) {
-    const meta = SCOPE_META[rule.scope];
-    const text = pickRuleText(rule);
-    measure.font = F(14);
-    width = Math.max(width, MARGIN + CHIP_W + 16 + Math.ceil(measure.measureText(text).width) + MARGIN);
-    const s = iconSlots(measure, rule.perks ?? []);
-    width = Math.max(width, s.rowW);
-    rules.push({
-      scope: rule.scope,
-      max: rule.max,
-      perks: rule.perks,
-      meta,
-      text,
-      slots: s.slots,
-      pillW: 0,
-      contentH: COMBO_ICON + COMBO_NAME_H,
-    });
-  }
-  let height = SECTION_HEAD_H;
-  for (const r of rules) height += 12 + 30 + 10 + r.contentH + COMBO_ROW_GAP;
-  return { rules, width, height };
-}
-
-/** Divider + title + subtitle shared by the three limit sections. Returns the y after them. */
-function drawSectionHead(ctx: SKRSContext2D, startY: number, width: number, title: string, subtitle: string): number {
-  let y = startY + COMBO_SECTION_GAP;
-  ctx.strokeStyle = DIVIDER_COLOR;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(MARGIN, y + 1);
-  ctx.lineTo(width - MARGIN, y + 1);
-  ctx.stroke();
-  y += 2 + 16;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  ctx.fillStyle = TEXT_COLOR;
-  ctx.font = F(22, 'bold');
-  ctx.fillText(title, MARGIN, y);
-  y += 40;
-  ctx.font = F(13);
-  ctx.fillStyle = SUBTEXT_COLOR;
-  ctx.fillText(subtitle, MARGIN, y);
-  return y + 24 + 8;
-}
-
-/** Chip + rule sentence line; returns y of the content row. */
-function drawRuleHead(ctx: SKRSContext2D, yIn: number, meta: { label: string; color: string }, text: string): number {
-  const y = yIn + 12;
-  const chipH = 30;
-  drawScopeChip(ctx, MARGIN, y, CHIP_W, chipH, meta.color, meta.label);
-  ctx.font = F(14);
-  ctx.fillStyle = RULE_TEXT_COLOR;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, MARGIN + CHIP_W + 16, y + chipH / 2);
-  ctx.textBaseline = 'top';
-  return y + chipH + 10;
-}
-
-function drawSlot(ctx: SKRSContext2D, slot: Slot, x: number, iconY: number, images: PerkImages): void {
-  const cx = x + slot.slotW / 2;
-  const ix = Math.round(cx - COMBO_ICON / 2);
-  drawIconOrPlaceholder(ctx, images.get(slot.perk.slug) ?? null, ix, iconY, COMBO_ICON, COMBO_ICON);
-  ctx.font = F(12);
-  ctx.fillStyle = GREY_DDD;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillText(slot.perk.name, Math.round(cx), iconY + COMBO_ICON + 4);
+export function buildPickLayout(picks: PerkLimit[], measure: Measure): LimitSectionLayout<PerkEntry> | null {
+  return buildLimitSection(
+    picks.map((r) => ({ scope: r.scope, text: pickRuleText(r), entries: (r.perks ?? []).map(toEntry) })),
+    'ALL PERKS',
+    measure,
+  );
 }
 
 function drawComboSection(ctx: SKRSContext2D, layout: ComboLayout, startY: number, images: PerkImages, width: number): void {
@@ -269,57 +159,21 @@ function drawComboSection(ctx: SKRSContext2D, layout: ComboLayout, startY: numbe
     for (const combo of g.combos) {
       let x = MARGIN;
       combo.slots.forEach((slot, i) => {
-        drawSlot(ctx, slot, x, y, images);
+        drawLimitSlot(ctx, slot.entry.label, images.get(slot.entry.key) ?? null, slot.slotW, x, y);
         x += slot.slotW;
         if (i < combo.slots.length - 1) {
-          ctx.font = F(24, 'bold');
+          ctx.font = fontPt(24, 'bold');
           ctx.fillStyle = GREY_888;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText('+', x + COMBO_PLUS_W / 2, y + COMBO_ICON / 2);
+          ctx.fillText('+', x + COMBO_PLUS_W / 2, y + LIMIT_ICON / 2);
           x += COMBO_PLUS_W;
         }
       });
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
-      y += COMBO_ICON + COMBO_NAME_H + COMBO_ROW_GAP;
+      y += LIMIT_ICON + LIMIT_NAME_H + LIMIT_ROW_GAP;
     }
-  }
-}
-
-function drawRuleSection(
-  ctx: SKRSContext2D,
-  layout: RuleLayout,
-  startY: number,
-  images: PerkImages,
-  width: number,
-  title: string,
-  subtitle: string,
-): void {
-  let y = drawSectionHead(ctx, startY, width, title, subtitle);
-  for (const rule of layout.rules) {
-    y = drawRuleHead(ctx, y, rule.meta, rule.text);
-    if (rule.slots) {
-      let x = MARGIN;
-      for (const slot of rule.slots) {
-        drawSlot(ctx, slot, x, y, images);
-        x += slot.slotW + REP_ICON_GAP;
-      }
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-    } else {
-      ctx.fillStyle = DIVIDER_COLOR;
-      roundRectPath(ctx, MARGIN, y, rule.pillW, REP_PILL_H, 6);
-      ctx.fill();
-      ctx.fillStyle = RULE_TEXT_COLOR;
-      ctx.font = F(12, 'bold');
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('ALL PERKS', MARGIN + rule.pillW / 2, y + REP_PILL_H / 2 + 1);
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-    }
-    y += rule.contentH + COMBO_ROW_GAP;
   }
 }
 
@@ -354,37 +208,29 @@ export async function renderSheet(env: PerkSheetEnv, a: RenderSheetArgs): Promis
   const gridH = rows > 0 ? rows * ICON + (rows - 1) * GAP : 0;
   const noteH = count === 0 ? 40 : 0;
 
-  const portraitImg = await loadImageCached(killerPortraitPath(env.assetsRoot, killer.slug));
-  if (!portraitImg) env.warn(`missing portrait for killer "${killer.name}"`);
-  const portraitH = HEADER_H - MARGIN;
-  const portraitW = portraitImg ? portraitH : 0; // square crop
-  const textX = portraitImg ? MARGIN + portraitW + 16 : MARGIN;
+  const portraitPath = killerPortraitPath(env.assetsRoot, killer.slug);
+  const portraitImg = await loaderFor(env).load(portraitPath, `missing portrait for killer "${killer.name}"`);
 
-  const sideLabel = sideLabelOf(side);
-  const titleText = side === 'survivor' ? `Going against: ${killer.name}` : killer.name;
-
-  const bodyWidth = MARGIN * 2 + gridW;
-  const measure = createCanvas(1, 1).getContext('2d');
-  measure.font = F(30, 'bold');
-  const titleW = measure.measureText(titleText).width;
-  measure.font = F(18);
-  const subW = measure.measureText(sideLabel).width;
-  measure.font = F(16);
-  const countW = measure.measureText(`(${count} perks)`).width;
-  measure.font = F(14);
   const plural = (n: number, s: string) => `(${n} ${s}${n === 1 ? '' : 's'})`;
-  const repCount = duplicateLimits.length;
-  const pickCount = pickLimits.length;
-  const comboCount = comboBans.length;
-  const repCountW = repCount ? measure.measureText(plural(repCount, 'duplicate limit')).width : 0;
-  const pickCountW = pickCount ? measure.measureText(plural(pickCount, 'pick limit')).width : 0;
-  const comboCountW = comboCount ? measure.measureText(plural(comboCount, 'combination ban')).width : 0;
-  const leftMaxW = Math.max(titleW, subW, countW, repCountW, pickCountW, comboCountW);
-  measure.font = F(13);
-  const genW = measure.measureText(`Generated: ${dateLabel}`).width;
-  const balW = balancing ? measure.measureText(`Balancing: ${balancing}`).width : 0;
-  const metaMaxW = Math.max(genW, balW);
+  const lines: HeaderLine[] = [
+    { text: side === 'survivor' ? `Going against: ${killer.name}` : killer.name, sizePt: 30, weight: 'bold', color: TEXT_COLOR, dy: 0 },
+    { text: side === 'killer' ? 'Allowed Killer Perks' : 'Allowed Survivor Perks', sizePt: 18, color: TEXT_COLOR, dy: 46 },
+    { text: `(${count} perks)`, sizePt: 16, color: GREY_AAA, dy: 84 },
+  ];
+  let countLineDy = 116;
+  for (const [n, singular] of [
+    [duplicateLimits.length, 'duplicate limit'],
+    [pickLimits.length, 'pick limit'],
+    [comboBans.length, 'combination ban'],
+  ] as const) {
+    if (!n) continue;
+    lines.push({ text: plural(n, singular), sizePt: 14, color: GREY_888, dy: countLineDy });
+    countLineDy += 24;
+  }
+  const header: SheetHeaderSpec = { killer, portrait: portraitImg, headerH: HEADER_H, lines, balancing, dateLabel };
 
+  const measure = createCanvas(1, 1).getContext('2d');
+  const hl = measureSheetHeader(measure, header);
   const repLayout = buildRepetitionLayout(duplicateLimits, measure);
   const pickLayout = buildPickLayout(pickLimits, measure);
   const comboLayout = buildComboLayout(comboBans, measure);
@@ -392,10 +238,9 @@ export async function renderSheet(env: PerkSheetEnv, a: RenderSheetArgs): Promis
   const pickH = pickLayout?.height ?? 0;
   const comboH = comboLayout?.height ?? 0;
 
-  const leftNeed = textX + leftMaxW + MARGIN;
-  const metaNeed = textX + metaMaxW + MARGIN;
+  const bodyWidth = MARGIN * 2 + gridW;
   const width = Math.ceil(
-    Math.max(bodyWidth, leftNeed, metaNeed, repLayout?.width ?? 0, pickLayout?.width ?? 0, comboLayout?.width ?? 0),
+    Math.max(bodyWidth, hl.leftNeed, hl.metaNeed, repLayout?.width ?? 0, pickLayout?.width ?? 0, comboLayout?.width ?? 0),
   );
   const height = HEADER_H + noteH + gridH + MARGIN * 2 + repH + pickH + comboH;
 
@@ -404,59 +249,32 @@ export async function renderSheet(env: PerkSheetEnv, a: RenderSheetArgs): Promis
   ctx.fillStyle = BG_COLOR;
   ctx.fillRect(0, 0, width, height);
 
-  // Header
-  if (portraitImg) drawPortraitSquare(ctx, portraitImg, killer.slug, MARGIN, MARGIN, portraitH);
-  ctx.fillStyle = TEXT_COLOR;
-  ctx.font = F(30, 'bold');
-  ctx.textBaseline = 'top';
-  ctx.fillText(titleText, textX, MARGIN);
-  ctx.font = F(18);
-  ctx.fillText(sideLabel, textX, MARGIN + 46);
-  ctx.font = F(16);
-  ctx.fillStyle = GREY_AAA;
-  ctx.fillText(`(${count} perks)`, textX, MARGIN + 84);
-  let countLineY = MARGIN + 116;
-  const drawCountLine = (n: number, singular: string): void => {
-    ctx.font = F(14);
-    ctx.fillStyle = GREY_888;
-    ctx.fillText(plural(n, singular), textX, countLineY);
-    countLineY += 24;
-  };
-  if (repCount) drawCountLine(repCount, 'duplicate limit');
-  if (pickCount) drawCountLine(pickCount, 'pick limit');
-  if (comboCount) drawCountLine(comboCount, 'combination ban');
-
-  ctx.font = F(13);
-  ctx.fillStyle = SUBTEXT_COLOR;
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'bottom';
-  const metaRight = width - MARGIN;
-  ctx.fillText(`Generated: ${dateLabel}`, metaRight, HEADER_H);
-  if (balancing) ctx.fillText(`Balancing: ${balancing}`, metaRight, HEADER_H - 22);
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
+  drawSheetHeader(ctx, header, hl, width);
 
   if (count === 0) {
     ctx.fillStyle = GREY_888;
-    ctx.font = F(16);
+    ctx.font = fontPt(16);
     ctx.fillText('None allowed', MARGIN, HEADER_H + MARGIN);
   } else {
     const images = await loadPerkImages(env, perks);
-    perks.forEach((p, i) => {
-      const x = MARGIN + (i % columns) * (ICON + GAP);
-      const y = HEADER_H + MARGIN + Math.floor(i / columns) * (ICON + GAP);
-      drawIconOrPlaceholder(ctx, images.get(p.slug) ?? null, x, y, ICON, ICON);
+    drawIconGrid(ctx, perks.map((p) => images.get(p.slug) ?? null), {
+      x: MARGIN,
+      y: HEADER_H + MARGIN,
+      columns,
+      icon: ICON,
+      gap: GAP,
+      placeholder: true,
     });
   }
 
   const gridBottom = HEADER_H + MARGIN + noteH + gridH;
   if (repLayout) {
     const images = await loadPerkImages(env, duplicateLimits.flatMap((r) => r.perks ?? []));
-    drawRuleSection(ctx, repLayout, gridBottom, images, width, 'Duplicate Limit', 'how many survivors may bring the same perk');
+    drawLimitSection(ctx, repLayout, gridBottom, images, width, 'Duplicate Limit', 'how many survivors may bring the same perk');
   }
   if (pickLayout) {
     const images = await loadPerkImages(env, pickLimits.flatMap((r) => r.perks ?? []));
-    drawRuleSection(ctx, pickLayout, gridBottom + repH, images, width, 'Pick Limits', 'how many perks you may choose from a group');
+    drawLimitSection(ctx, pickLayout, gridBottom + repH, images, width, 'Pick Limits', 'how many perks you may choose from a group');
   }
   if (comboLayout) {
     const images = await loadPerkImages(env, comboBans.flatMap((c) => c.perks ?? []));
@@ -493,10 +311,7 @@ export async function renderIconSheet(env: PerkSheetEnv, a: RenderIconSheetArgs)
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
   const images = await loadPerkImages(env, perks);
-  perks.forEach((p, i) => {
-    const img = images.get(p.slug);
-    if (img) ctx.drawImage(img, (i % columns) * (ICON + GAP), Math.floor(i / columns) * (ICON + GAP), ICON, ICON);
-  });
+  drawIconGrid(ctx, perks.map((p) => images.get(p.slug) ?? null), { columns, icon: ICON, gap: GAP, placeholder: false });
   const outFile = path.join(a.outDir, `${a.killerSlug}-${side}-perks-icons.png`);
   await savePng(canvas, outFile);
   return outFile;
