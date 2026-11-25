@@ -154,13 +154,20 @@ unless you set `DBD_ASSETS_ROOT` yourself. The golden regression suite (`test/re
 requires that pinned commit.
 
 `DBD_ASSETS_ROOT` accepts a local checkout or a Git repository URL (HTTPS, SSH,
-or `file://`). Remote repositories are fetched on first use and cached under
-`$XDG_CACHE_HOME/balancing-sheet-generator/assets`, or
-`~/.cache/balancing-sheet-generator/assets` when `XDG_CACHE_HOME` is unset.
-Set `DBD_ASSETS_CACHE` to override that directory. The cache is keyed by URL and
-`DBD_ASSETS_REF` (a commit, tag, or branch; defaults to remote `HEAD`). Cached
-checkouts work offline and are reused without checking for updates; change the
-ref or delete the cache entry to fetch again. Local paths ignore these remote settings.
+or `file://`). For a URL, `DBD_ASSETS_REF` selects a commit, tag, or branch
+(default: the remote's `HEAD`):
+
+- **Branch, tag, or unset:** every run checks the remote (a quick `git ls-remote`) and
+  fetches the commit the ref points to if it is not cached yet, so new assets are
+  picked up without any extra step. If the remote is unreachable, the last commit
+  fetched for that ref is used and a warning is printed.
+- **Full commit SHA:** pinned. It is fetched once and reused without contacting the
+  remote; use this for reproducible output.
+
+Fetched commits are cached under `$XDG_CACHE_HOME/balancing-sheet-generator/assets`,
+or `~/.cache/balancing-sheet-generator/assets` when `XDG_CACHE_HOME` is unset.
+Set `DBD_ASSETS_CACHE` to override that directory. The `version` command prints the
+commit in use. Local paths ignore these remote settings: update the checkout yourself.
 The CLI does not automatically load `.env`; export the variables in your shell.
 Docker still uses its baked-in assets by default. When overriding it with a remote
 URL, also set `DBD_ASSETS_CACHE` to a writable directory, such as `/work/.dbd-assets-cache`.
