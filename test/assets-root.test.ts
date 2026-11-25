@@ -19,6 +19,9 @@ describe('assets sources', () => {
     git('-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-qm', 'assets');
     return git('rev-parse', 'HEAD');
   };
+  /** Cached checkouts and staging directories, ignoring the empty layout directories. */
+  const leftovers = () => (fs.readdirSync(cache, { recursive: true }) as string[])
+    .filter((entry) => !['commits', 'refs'].includes(entry));
 
   beforeEach(() => {
     temp = fs.mkdtempSync(path.join(os.tmpdir(), 'bsg-assets-'));
@@ -49,19 +52,61 @@ describe('assets sources', () => {
     expect(resolveAssetsRoot).toThrow(/missing images/);
   });
 
-  it('fetches remote HEAD, records the commit, and reuses the cache offline', () => {
+  it('fetches remote HEAD and records the commit', () => {
     const sha = git('rev-parse', 'HEAD');
     const root = resolveAssetsRoot();
     expect(root.startsWith(cache + path.sep)).toBe(true);
     expect(fs.readFileSync(path.join(root, 'images/icon.png'), 'utf8')).toBe('fixture');
     expect(readAssetsRef(root)).toBe(sha);
-    fs.rmSync(repo, { recursive: true });
     expect(resolveAssetsRoot()).toBe(root);
   });
 
-  it('fetches pinned commits and tags into separate cache entries', () => {
+  it('picks up new commits on a branch or HEAD without clearing the cache', () => {
+    const before = resolveAssetsRoot();
+    fs.writeFileSync(path.join(repo, 'images/icon.png'), 'updated');
+    const sha = commit();
+    const after = resolveAssetsRoot();
+    expect(after).not.toBe(before);
+    expect(readAssetsRef(after)).toBe(sha);
+    expect(fs.readFileSync(path.join(after, 'images/icon.png'), 'utf8')).toBe('updated');
+    vi.stubEnv('DBD_ASSETS_REF', git('branch', '--show-current'));
+    expect(resolveAssetsRoot()).toBe(after);
+  });
+
+  it('falls back to the last fetched commit when the remote is unreachable', () => {
+    const root = resolveAssetsRoot();
+    const sha = git('rev-parse', 'HEAD');
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    try {
+      fs.rmSync(repo, { recursive: true });
+      expect(resolveAssetsRoot()).toBe(root);
+      expect(stderr).toHaveBeenCalledWith(expect.stringContaining(`using cached commit ${sha}`));
+      vi.stubEnv('DBD_ASSETS_REF', 'never-fetched');
+      expect(resolveAssetsRoot).toThrow(SheetError);
+    } finally {
+      stderr.mockRestore();
+    }
+  });
+
+  it('reuses a pinned commit without contacting the remote', () => {
+    const sha = git('rev-parse', 'HEAD');
+    vi.stubEnv('DBD_ASSETS_REF', sha);
+    const root = resolveAssetsRoot();
+    expect(readAssetsRef(root)).toBe(sha);
+    fs.rmSync(repo, { recursive: true });
+    const stderr = vi.spyOn(process.stderr, 'write');
+    try {
+      expect(resolveAssetsRoot()).toBe(root);
+      expect(stderr).not.toHaveBeenCalled();
+    } finally {
+      stderr.mockRestore();
+    }
+  });
+
+  it('shares one cache entry between refs that resolve to the same commit', () => {
     const first = git('rev-parse', 'HEAD');
     git('tag', 'v1');
+    git('-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'tag', '-a', 'v1-annotated', '-m', 'release');
     fs.writeFileSync(path.join(repo, 'images/icon.png'), 'updated');
     const second = commit();
     vi.stubEnv('DBD_ASSETS_REF', first);
@@ -69,7 +114,9 @@ describe('assets sources', () => {
     expect(readAssetsRef(pinned)).toBe(first);
     expect(fs.readFileSync(path.join(pinned, 'images/icon.png'), 'utf8')).toBe('fixture');
     vi.stubEnv('DBD_ASSETS_REF', 'v1');
-    expect(readAssetsRef(resolveAssetsRoot())).toBe(first);
+    expect(resolveAssetsRoot()).toBe(pinned);
+    vi.stubEnv('DBD_ASSETS_REF', 'v1-annotated');
+    expect(resolveAssetsRoot()).toBe(pinned);
     vi.stubEnv('DBD_ASSETS_REF', '');
     const latest = resolveAssetsRoot();
     expect(latest).not.toBe(pinned);
@@ -79,7 +126,7 @@ describe('assets sources', () => {
   it('cleans up failed fetches and allows a retry', () => {
     vi.stubEnv('DBD_ASSETS_REF', 'missing-ref');
     expect(resolveAssetsRoot).toThrow(SheetError);
-    expect(fs.readdirSync(cache)).toEqual([]);
+    expect(leftovers()).toEqual([]);
     git('tag', 'missing-ref');
     expect(readAssetsRef(resolveAssetsRoot())).toBe(git('rev-parse', 'HEAD'));
   });
@@ -88,6 +135,6 @@ describe('assets sources', () => {
     git('rm', '-r', 'images');
     commit();
     expect(resolveAssetsRoot).toThrow(/missing images/);
-    expect(fs.readdirSync(cache)).toEqual([]);
+    expect(leftovers()).toEqual([]);
   });
 });
