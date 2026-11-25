@@ -11,6 +11,21 @@ What each command produces, rendered from real balancing files borrowed from dbd
 | [`lich-allowlist.yaml`](input/lich-allowlist.yaml) | `--rules` for the killer builds |
 | [`lich-killer-builds.yaml`](input/lich-killer-builds.yaml) | killer builds (`builds:`) |
 
+## Running the commands
+
+The tool ships as a Docker image. The commands below run from the repository root with `dbd-sheet`
+defined as a shell function around `docker run`:
+
+```bash
+dbd-sheet() {
+  docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" \
+    ghcr.io/shenapse/dbd-balancing-sheet-generator:main "$@"
+}
+```
+
+The current directory is mounted at `/work`, the image's working directory. Paths therefore stay
+relative to it, and the sheets are written to `./output` (or `--out`) as your own user.
+
 ## perks
 
 ```bash
@@ -68,9 +83,12 @@ any build breaks the allow-list.
 ## Regenerating
 
 ```bash
-examples/generate.sh
+examples/generate.sh                      # pulls and runs ghcr.io/shenapse/dbd-balancing-sheet-generator:main
+BSG_IMAGE=bsg:dev examples/generate.sh    # runs a locally built image instead
 ```
 
-The script uses the dbd-assets commit in [`dbd-assets.ref`](../dbd-assets.ref) unless
-`DBD_ASSETS_ROOT` is set. The sheets carry the generation date, so regenerating changes every PNG.
+The script runs each command above through Docker and writes the results to `sheets/`. The sheets use
+the dbd-assets commit baked into the image, which the script prints first. They carry the
+generation date, so regenerating changes every PNG. To render with uncommitted source
+changes, build `bsg:dev` first (see the README's "Local image build").
 The same inputs are also golden regression cases (see the README's "Regression tests").

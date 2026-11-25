@@ -16,13 +16,20 @@ the image. There is no JavaScript API.
 
 ```bash
 docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" \
-  ghcr.io/shenapse/dbd-balancing-sheet-generator:<tag> \
+  ghcr.io/shenapse/dbd-balancing-sheet-generator:main \
   builds killer-builds.yaml --rules rules.yaml --out out --json
 ```
 
 - Mount your repository root at `/work` (the working directory). Paths are relative to it, and
   files are written there as your own uid (`--user`).
-- `<tag>` is `latest`, a version (`1.2.3`, `1.2`, `1`), `main`, or `sha-<short>`.
+- Pick the image tag by how you want updates:
+  - `main` (rolling): the newest build of `main`, with the newest dbd-assets commit bumped there.
+    New game data reaches you on the next `docker pull`.
+  - A version (`1.2.3`, `1.2`, `1`) or `sha-<short>` (pinned): the tool and the assets that
+    build was made with. Use one when the output must be reproducible, e.g. in CI.
+
+  There is no `latest` tag, so the image name needs an explicit tag. The data is part of the
+  build (see [Assets pinning](#assets-pinning)): by default `docker run` does not fetch newer assets.
 
 ## Commands
 
@@ -127,8 +134,8 @@ fetches exactly that commit, keeps `data/` and `images/`, and writes the SHA to
 `/opt/dbd-assets/.ref`. The SHA is reported by:
 
 ```bash
-docker run --rm ghcr.io/shenapse/dbd-balancing-sheet-generator:latest version
-docker image inspect ghcr.io/shenapse/dbd-balancing-sheet-generator:latest \
+docker run --rm ghcr.io/shenapse/dbd-balancing-sheet-generator:main version
+docker image inspect ghcr.io/shenapse/dbd-balancing-sheet-generator:main \
   --format '{{ index .Config.Labels "io.github.shenapse.dbd-assets.ref" }}'
 ```
 

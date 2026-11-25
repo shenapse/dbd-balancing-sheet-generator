@@ -49,13 +49,17 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
+          # No `latest`: data changes more often than the tool, so a release-gated `latest` would
+          # carry older assets than `main`. `main` is the rolling tag; versions and sha-* pin.
+          # latest=false also stops the action from adding `latest` to semver builds by default.
+          flavor: |
+            latest=false
           tags: |
             type=ref,event=branch
             type=sha,prefix=sha-
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 
       # Build into the local Docker store (not pushed yet) so the exact image that is published is
       # the one regression-tested below. For multi-arch (linux/arm64 + docker/setup-qemu-action),
